@@ -119,6 +119,10 @@ Use Vite defaults:
 - Keep demo seed data only for local or staging deployments.
 - Keep `SEED_DEMO_DATA=false` for production.
 
+## Deployment Troubleshooting
+
+- If Render uses Python 3.14 and `pydantic-core` fails while building Rust dependencies, force Python 3.11.9. This repository pins the backend with `backend/runtime.txt` and `backend/.python-version`.
+
 ## Post-Deployment Test Checklist
 
 1. Backend `/health` returns `200`.
