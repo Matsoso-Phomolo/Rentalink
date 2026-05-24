@@ -150,6 +150,18 @@ export type LandlordRequest = {
   created_at: string;
 };
 
+export type Caretaker = {
+  id: string;
+  user_id: string;
+  landlord_id: string;
+  phone?: string | null;
+  username?: string | null;
+  full_name: string;
+  email: string;
+  is_active: boolean;
+  created_at: string;
+};
+
 export type PaymentSubmission = {
   id: string;
   tenant_id: string;

@@ -5,6 +5,7 @@ const landlordLinks = [
   { to: "/landlord", label: "Dashboard" },
   { to: "/landlord/properties", label: "Properties" },
   { to: "/landlord/rooms", label: "Rooms" },
+  { to: "/landlord/caretakers", label: "Caretakers" },
   { to: "/landlord/listings", label: "Listings" },
   { to: "/landlord/leases", label: "Leases" },
   { to: "/landlord/requests", label: "Room Requests" },
@@ -47,7 +48,7 @@ export function AppLayout() {
           <strong>{user?.full_name}</strong>
           <span>{user?.email}</span>
           <button type="button" onClick={handleLogout}>
-            Sign out
+            Log out
           </button>
         </div>
       </aside>

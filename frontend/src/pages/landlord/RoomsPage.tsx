@@ -16,6 +16,19 @@ type RoomForm = {
   notes: string;
 };
 
+type BulkRoomForm = {
+  property_id: string;
+  prefix: string;
+  start_number: string;
+  room_size: string;
+  single_count: string;
+  single_rent: string;
+  single_deposit: string;
+  double_count: string;
+  double_rent: string;
+  double_deposit: string;
+};
+
 const emptyRoom: RoomForm = {
   property_id: "",
   room_number: "",
@@ -25,6 +38,19 @@ const emptyRoom: RoomForm = {
   rent_price: "",
   deposit_amount: "",
   notes: ""
+};
+
+const emptyBulk: BulkRoomForm = {
+  property_id: "",
+  prefix: "A",
+  start_number: "101",
+  room_size: "medium",
+  single_count: "0",
+  single_rent: "",
+  single_deposit: "",
+  double_count: "0",
+  double_rent: "",
+  double_deposit: ""
 };
 
 function formFromRoom(room: Room): RoomForm {
@@ -45,6 +71,7 @@ export function RoomsPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
   const [properties, setProperties] = useState<PropertyItem[]>([]);
   const [form, setForm] = useState<RoomForm>(emptyRoom);
+  const [bulk, setBulk] = useState<BulkRoomForm>(emptyBulk);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -62,6 +89,7 @@ export function RoomsPage() {
       setRooms(roomItems);
       setProperties(propertyItems);
       setForm((current) => current.property_id || propertyItems.length === 0 ? current : { ...current, property_id: propertyItems[0].id });
+      setBulk((current) => current.property_id || propertyItems.length === 0 ? current : { ...current, property_id: propertyItems[0].id });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load rooms");
     } finally {
@@ -78,6 +106,10 @@ export function RoomsPage() {
 
   function update<K extends keyof RoomForm>(key: K, value: RoomForm[K]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function updateBulk<K extends keyof BulkRoomForm>(key: K, value: BulkRoomForm[K]) {
+    setBulk((current) => ({ ...current, [key]: value }));
   }
 
   async function saveRoom(event: FormEvent) {
@@ -105,6 +137,43 @@ export function RoomsPage() {
       await loadData();
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not save room");
+    }
+  }
+
+  async function createBulkRooms(event: FormEvent) {
+    event.preventDefault();
+    setNotice("");
+    const singleCount = Number(bulk.single_count || 0);
+    const doubleCount = Number(bulk.double_count || 0);
+    const startNumber = Number(bulk.start_number || 1);
+    const total = singleCount + doubleCount;
+    if (total <= 0) {
+      setNotice("Enter at least one single or double room.");
+      return;
+    }
+    const tasks: Array<{ room_type: Room["room_type"]; rent_price: string; deposit_amount: string }> = [
+      ...Array.from({ length: singleCount }, () => ({ room_type: "single" as const, rent_price: bulk.single_rent, deposit_amount: bulk.single_deposit })),
+      ...Array.from({ length: doubleCount }, () => ({ room_type: "double" as const, rent_price: bulk.double_rent, deposit_amount: bulk.double_deposit }))
+    ];
+    try {
+      await Promise.all(tasks.map((item, index) => apiFetch("/rooms", {
+        method: "POST",
+        body: JSON.stringify({
+          property_id: bulk.property_id,
+          room_number: `${bulk.prefix}-${startNumber + index}`,
+          status: "vacant",
+          room_type: item.room_type,
+          room_size: bulk.room_size,
+          rent_price: Number(item.rent_price),
+          deposit_amount: Number(item.deposit_amount || item.rent_price || 0),
+          notes: `Bulk-created ${item.room_type} room`
+        })
+      })));
+      setNotice(`${total} rooms created for this line.`);
+      setBulk({ ...emptyBulk, property_id: properties[0]?.id ?? "" });
+      await loadData();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not create bulk rooms");
     }
   }
 
@@ -155,6 +224,40 @@ export function RoomsPage() {
       {error ? <ErrorState message={error} /> : null}
       {notice ? <div className="data-state">{notice}</div> : null}
 
+      <form className="panel form-panel" onSubmit={createBulkRooms}>
+        <div>
+          <p className="eyebrow">Line setup</p>
+          <h2>Add many rooms at once</h2>
+          <p>Enter how many single and double rooms this line has, then LineLink creates the room inventory with prices and deposits.</p>
+        </div>
+        <div className="form-grid">
+          <label>Property/location<select required value={bulk.property_id} onChange={(event) => updateBulk("property_id", event.target.value)}>
+            <option value="">Choose property</option>
+            {properties.map((property) => <option key={property.id} value={property.id}>{property.name} - {property.location_area}</option>)}
+          </select></label>
+          <label>Room size<select value={bulk.room_size} onChange={(event) => updateBulk("room_size", event.target.value)}>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select></label>
+        </div>
+        <div className="form-grid">
+          <label>Room prefix<input value={bulk.prefix} onChange={(event) => updateBulk("prefix", event.target.value)} placeholder="A" /></label>
+          <label>Starting number<input inputMode="numeric" value={bulk.start_number} onChange={(event) => updateBulk("start_number", event.target.value)} placeholder="101" /></label>
+        </div>
+        <div className="form-grid">
+          <label>Number of single rooms<input inputMode="numeric" value={bulk.single_count} onChange={(event) => updateBulk("single_count", event.target.value)} /></label>
+          <label>Single room price<input inputMode="numeric" value={bulk.single_rent} onChange={(event) => updateBulk("single_rent", event.target.value)} /></label>
+        </div>
+        <label>Single room deposit<input inputMode="numeric" value={bulk.single_deposit} onChange={(event) => updateBulk("single_deposit", event.target.value)} placeholder="Defaults to single room price" /></label>
+        <div className="form-grid">
+          <label>Number of double rooms<input inputMode="numeric" value={bulk.double_count} onChange={(event) => updateBulk("double_count", event.target.value)} /></label>
+          <label>Double room price<input inputMode="numeric" value={bulk.double_rent} onChange={(event) => updateBulk("double_rent", event.target.value)} /></label>
+        </div>
+        <label>Double room deposit<input inputMode="numeric" value={bulk.double_deposit} onChange={(event) => updateBulk("double_deposit", event.target.value)} placeholder="Defaults to double room price" /></label>
+        <button className="primary-button" disabled={properties.length === 0} type="submit">Create room inventory</button>
+      </form>
+
       <form className="panel form-panel" onSubmit={saveRoom}>
         <div>
           <p className="eyebrow">{form.id ? "Edit room" : "New room"}</p>
@@ -179,7 +282,11 @@ export function RoomsPage() {
           </select></label>
         </div>
         <div className="form-grid">
-          <label>Room size<input value={form.room_size} onChange={(event) => update("room_size", event.target.value)} placeholder="small, medium, large" /></label>
+          <label>Room size<select value={form.room_size} onChange={(event) => update("room_size", event.target.value)}>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select></label>
           <label>Monthly rent<input required inputMode="numeric" value={form.rent_price} onChange={(event) => update("rent_price", event.target.value)} /></label>
         </div>
         <label>Deposit<input inputMode="numeric" value={form.deposit_amount} onChange={(event) => update("deposit_amount", event.target.value)} /></label>

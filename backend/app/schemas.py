@@ -142,6 +142,32 @@ class CaretakerCreate(BaseModel):
     phone: str | None = None
 
 
+class CaretakerAccountCreate(BaseModel):
+    full_name: str
+    email: EmailStr
+    phone: str | None = None
+    password: str = Field(min_length=8)
+
+
+class CaretakerUpdate(BaseModel):
+    full_name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    is_active: bool | None = None
+
+
+class CaretakerRead(ORMModel):
+    id: uuid.UUID
+    user_id: uuid.UUID
+    landlord_id: uuid.UUID
+    phone: str | None = None
+    username: str | None = None
+    full_name: str
+    email: str
+    is_active: bool
+    created_at: datetime
+
+
 class PropertyBase(BaseModel):
     name: str
     description: str | None = None

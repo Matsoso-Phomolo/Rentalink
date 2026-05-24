@@ -320,7 +320,11 @@ export function ListingsPage() {
             <option value="single">Single</option>
             <option value="double">Double</option>
           </select></label>
-          <label>Room size<input value={form.room_size} onChange={(event) => update("room_size", event.target.value)} /></label>
+          <label>Room size<select value={form.room_size} onChange={(event) => update("room_size", event.target.value)}>
+            <option value="small">Small</option>
+            <option value="medium">Medium</option>
+            <option value="large">Large</option>
+          </select></label>
         </div>
         <div className="form-grid">
           <label>Allowed tenant<select value={form.allowed_tenant_type} onChange={(event) => update("allowed_tenant_type", event.target.value as Listing["allowed_tenant_type"])}>
