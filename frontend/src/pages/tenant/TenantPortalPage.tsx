@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { apiFetch } from "../../api/client";
 import { ErrorState, LoadingState } from "../../components/DataState";
 import { StatusPill } from "../../components/StatusPill";
+import type { LeaseAgreement, PaymentReceipt } from "../../types";
 
 type TenantPortal = {
   tenant: null | {
@@ -19,6 +20,8 @@ type TenantPortal = {
   occupancies: Array<{ id: string; room_id: string; move_in_date: string; monthly_rent: number; deposit_amount: number; status: string }>;
   rent_dues: Array<{ id: string; due_month: string; due_date?: string | null; amount_due: number; amount_paid: number; status: string; is_late?: boolean; late_penalty_amount?: number }>;
   payments: Array<{ id: string; amount: number; method: string; transaction_reference: string; status: string; created_at: string }>;
+  receipts: PaymentReceipt[];
+  leases: LeaseAgreement[];
   support_tickets: Array<{ id: string; title: string; category: string; priority?: string; status: string; created_at: string }>;
 };
 
@@ -26,13 +29,34 @@ export function TenantPortalPage() {
   const [portal, setPortal] = useState<TenantPortal | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  async function loadPortal() {
+    setLoading(true);
+    setError("");
+    try {
+      setPortal(await apiFetch("/tenant-portal/me") as TenantPortal);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load tenant portal");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   useEffect(() => {
-    apiFetch("/tenant-portal/me")
-      .then(setPortal)
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load tenant portal"))
-      .finally(() => setLoading(false));
+    loadPortal();
   }, []);
+
+  async function signLease(lease: LeaseAgreement) {
+    setNotice("");
+    try {
+      await apiFetch(`/leases/${lease.id}/tenant-sign`, { method: "POST" });
+      setNotice("Lease accepted and signed.");
+      await loadPortal();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not sign lease");
+    }
+  }
 
   return (
     <section className="page-stack">
@@ -45,6 +69,7 @@ export function TenantPortalPage() {
       </div>
       {loading ? <LoadingState /> : null}
       {error ? <ErrorState message={error} /> : null}
+      {notice ? <div className="data-state">{notice}</div> : null}
       {portal?.tenant ? (
         <>
           <div className="metric-grid">
@@ -55,6 +80,28 @@ export function TenantPortalPage() {
             <Metric label="Student number" value={portal.tenant.student_number ?? "Not set"} />
             <Metric label="Institution" value={portal.tenant.institution ?? "Not set"} />
           </div>
+
+          <section className="panel">
+            <h2>Lease agreements</h2>
+            <div className="list-stack">
+              {(portal.leases ?? []).length === 0 ? <div className="data-state">No lease agreement has been issued yet.</div> : null}
+              {(portal.leases ?? []).map((lease) => (
+                <article className="row-item" key={lease.id}>
+                  <div>
+                    <strong>{lease.lease_number}</strong>
+                    <p>M{Number(lease.monthly_rent).toLocaleString()} monthly from {new Date(lease.start_date).toLocaleDateString()}</p>
+                    <small>Landlord signed: {lease.landlord_signed_at ? new Date(lease.landlord_signed_at).toLocaleString() : "Pending"}</small>
+                  </div>
+                  <div className="review-actions">
+                    <StatusPill value={lease.status} />
+                    <button type="button" disabled={!["issued", "draft"].includes(lease.status) || Boolean(lease.tenant_signed_at)} onClick={() => signLease(lease)}>
+                      {lease.tenant_signed_at ? "Signed" : "Accept / sign"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
 
           <section className="panel">
             <h2>Rent dues</h2>
@@ -96,6 +143,23 @@ export function TenantPortalPage() {
                     <p>{payment.transaction_reference}</p>
                   </div>
                   <StatusPill value={payment.status} />
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className="panel">
+            <h2>Receipts</h2>
+            <div className="list-stack">
+              {(portal.receipts ?? []).length === 0 ? <div className="data-state">Receipts will appear after approved payments.</div> : null}
+              {(portal.receipts ?? []).slice(0, 6).map((receipt) => (
+                <article className="row-item" key={receipt.id}>
+                  <div>
+                    <strong>{receipt.receipt_number}</strong>
+                    <p>M{Number(receipt.amount).toLocaleString()} via {receipt.method.replaceAll("_", " ")}</p>
+                    <small>{receipt.transaction_reference ?? "No reference"} - {new Date(receipt.issued_at).toLocaleDateString()}</small>
+                  </div>
+                  <StatusPill value="issued" />
                 </article>
               ))}
             </div>

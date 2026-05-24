@@ -10,11 +10,13 @@ from app.file_storage import save_upload_file
 from app.auth import get_password_hash
 from app.identity import first_name_password, next_identifier
 from app.notification_channels import send_login_credentials
+from app.lease_logic import generate_lease_for_occupancy
 from app.models import (
     ApplicationStatus,
     AuditAction,
     ListingPhoto,
     ListingStatus,
+    ListingVerificationStatus,
     Landlord,
     Notification,
     Occupancy,
@@ -58,6 +60,9 @@ def create_listing(payload: ListingCreate, db: Session = Depends(get_db), user: 
     if room.property_id != prop.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Room does not belong to the selected property")
     listing = RoomListing(**payload.model_dump(), landlord_id=prop.landlord_id)
+    if listing.is_public and listing.status == ListingStatus.published:
+        listing.verification_status = ListingVerificationStatus.pending_verification
+        listing.is_verified = False
     if room.status == RoomStatus.occupied:
         listing.status = ListingStatus.rented
         listing.is_public = False
@@ -78,7 +83,10 @@ def update_listing(listing_id: uuid.UUID, payload: ListingUpdate, db: Session = 
     listing = listing_in_scope(db, user, listing_id)
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(listing, key, value)
-    log_action(db, AuditAction.update_room_listing, user, listing.landlord_id, "RoomListing", listing.id)
+    if listing.is_public and listing.status == ListingStatus.published and listing.verification_status != ListingVerificationStatus.verified:
+        listing.verification_status = ListingVerificationStatus.pending_verification
+        listing.is_verified = False
+    log_action(db, AuditAction.verify_listing, user, listing.landlord_id, "RoomListing", listing.id)
     db.commit()
     db.refresh(listing)
     return listing
@@ -100,7 +108,22 @@ def verify_listing(listing_id: uuid.UUID, db: Session = Depends(get_db), user: U
     if not listing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
     listing.is_verified = True
+    listing.verification_status = ListingVerificationStatus.verified
     log_action(db, AuditAction.update_room_listing, user, listing.landlord_id, "RoomListing", listing.id)
+    db.commit()
+    db.refresh(listing)
+    return listing
+
+
+@router.put("/{listing_id}/reject-verification", response_model=ListingRead)
+def reject_listing_verification(listing_id: uuid.UUID, payload: ApplicationDecision, db: Session = Depends(get_db), user: User = Depends(require_roles(UserRole.admin))):
+    listing = db.get(RoomListing, listing_id)
+    if not listing:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+    listing.is_verified = False
+    listing.verification_status = ListingVerificationStatus.rejected
+    listing.verification_note = payload.landlord_note
+    log_action(db, AuditAction.verify_listing, user, listing.landlord_id, "RoomListing", listing.id)
     db.commit()
     db.refresh(listing)
     return listing
@@ -246,6 +269,7 @@ def assign_application_room(application_id: uuid.UUID, payload: ApplicationAssig
     db.add(occupancy)
     db.flush()
     generate_initial_rent_due(db, occupancy)
+    lease = generate_lease_for_occupancy(db, occupancy)
     room.status = RoomStatus.occupied
     listing.status = ListingStatus.rented
     listing.is_public = False
@@ -263,4 +287,4 @@ def assign_application_room(application_id: uuid.UUID, payload: ApplicationAssig
     log_action(db, AuditAction.create_occupancy, user, listing.landlord_id, "TenantApplication", application.id)
     db.commit()
     tenant_user = db.get(User, tenant.user_id) if tenant.user_id else None
-    return {"tenant_id": tenant.id, "occupancy_id": occupancy.id, "invitation_id": invitation.id if invitation else None, "username": tenant_user.username if tenant_user else None}
+    return {"tenant_id": tenant.id, "occupancy_id": occupancy.id, "lease_id": lease.id, "invitation_id": invitation.id if invitation else None, "username": tenant_user.username if tenant_user else None}

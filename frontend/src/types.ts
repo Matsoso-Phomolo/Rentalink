@@ -71,11 +71,18 @@ export type Listing = {
   contact_phone?: string | null;
   water_available: boolean;
   electricity_available: boolean;
+  internet_included: boolean;
+  furnished: boolean;
+  parking_available: boolean;
+  pets_allowed: boolean;
+  gender_preference?: string | null;
   security_features?: string | null;
   house_rules?: string | null;
   status: "draft" | "published" | "rented" | "archived";
   is_public: boolean;
   is_verified: boolean;
+  verification_status?: "unverified" | "pending_verification" | "verified" | "rejected";
+  verification_note?: string | null;
 };
 
 export type TenantApplication = {
@@ -168,5 +175,49 @@ export type NotificationItem = {
   body: string;
   category: string;
   is_read: boolean;
+  created_at: string;
+};
+
+export type LeaseAgreement = {
+  id: string;
+  lease_number: string;
+  landlord_id: string;
+  tenant_id: string;
+  property_id: string;
+  room_id: string;
+  occupancy_id: string;
+  start_date: string;
+  end_date?: string | null;
+  monthly_rent: number;
+  deposit_amount: number;
+  terms?: string | null;
+  status: "draft" | "issued" | "signed" | "active" | "expired" | "terminated";
+  tenant_signed_at?: string | null;
+  landlord_signed_at?: string | null;
+  pdf_url?: string | null;
+  created_at: string;
+};
+
+export type PaymentReceipt = {
+  id: string;
+  receipt_number: string;
+  tenant_id: string;
+  room_id?: string | null;
+  payment_submission_id: string;
+  amount: number;
+  method: string;
+  transaction_reference?: string | null;
+  issued_at: string;
+  pdf_url?: string | null;
+};
+
+export type SubscriptionPlan = {
+  id: string;
+  name: string;
+  monthly_price: number;
+  max_properties: number;
+  max_rooms: number;
+  features?: string | null;
+  is_active: boolean;
   created_at: string;
 };

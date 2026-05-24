@@ -913,6 +913,25 @@ th {
   font-weight: 800;
 }
 
+.inline-check {
+  min-height: 44px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0 12px;
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #42505f;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.inline-check input {
+  width: auto;
+}
+
 .mini-card {
   display: grid;
   gap: 8px;
@@ -939,6 +958,9 @@ th {
 .status-published,
 .status-paid,
 .status-approved,
+.status-issued,
+.status-signed,
+.status-verified,
 .status-active {
   background: #dff5e8;
   color: #226142;
@@ -947,6 +969,9 @@ th {
 .status-occupied,
 .status-pending,
 .status-unpaid,
+.status-draft,
+.status-unverified,
+.status-pending-verification,
 .status-open {
   background: #fff2d5;
   color: #8a5a00;
@@ -954,6 +979,7 @@ th {
 
 .status-rented,
 .status-rejected,
+.status-terminated,
 .status-closed {
   background: #f1e1df;
   color: #803b34;

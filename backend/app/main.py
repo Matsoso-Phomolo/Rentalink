@@ -13,7 +13,9 @@ from app.routers import (
     categories,
     complaints,
     dashboard,
+    inspections,
     landlords,
+    leases,
     line_rules,
     listings,
     notifications,
@@ -23,8 +25,10 @@ from app.routers import (
     properties,
     public_listings,
     rent_dues,
+    messaging,
     rooms,
     support_tickets,
+    subscriptions,
     tenant_accounts,
     tenant_portal,
     tenants,
@@ -75,6 +79,10 @@ app.include_router(audit_logs.router)
 app.include_router(applications.router)
 app.include_router(line_rules.router)
 app.include_router(complaints.router)
+app.include_router(leases.router)
+app.include_router(messaging.router)
+app.include_router(inspections.router)
+app.include_router(subscriptions.router)
 app.include_router(dashboard.router)
 
 if (FRONTEND_DIST / "assets").exists():

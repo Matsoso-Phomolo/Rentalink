@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import ApplicationStatus, Landlord, ListingStatus, Notification, Room, RoomListing, RoomStatus, TenantApplication, TenantType, ViewingRequest
+from app.models import ApplicationStatus, Landlord, ListingStatus, ListingVerificationStatus, Notification, Room, RoomListing, RoomStatus, TenantApplication, TenantType, ViewingRequest
 from app.schemas import (
     ListingRead,
     PublicApplicationSubmit,
@@ -29,7 +29,7 @@ def get_public_listing(db: Session, listing_id: uuid.UUID) -> RoomListing:
         RoomListing.id == listing_id,
         RoomListing.status == ListingStatus.published,
         RoomListing.is_public.is_(True),
-        RoomListing.is_verified.is_(True),
+        RoomListing.verification_status == ListingVerificationStatus.verified,
         Room.status == RoomStatus.vacant,
     ).first()
     if not listing:
@@ -38,20 +38,45 @@ def get_public_listing(db: Session, listing_id: uuid.UUID) -> RoomListing:
 
 
 @router.get("", response_model=list[ListingRead])
-def public_listings(location_area: str | None = None, room_type: str | None = None, max_rent: float | None = None, db: Session = Depends(get_db)):
+def public_listings(
+    location_area: str | None = None,
+    room_type: str | None = None,
+    room_size: str | None = None,
+    min_rent: float | None = None,
+    max_rent: float | None = None,
+    distance_from_nul: str | None = None,
+    water_available: bool | None = None,
+    electricity_available: bool | None = None,
+    furnished: bool | None = None,
+    verified_only: bool = True,
+    db: Session = Depends(get_db),
+):
     query = db.query(RoomListing).join(Room, Room.id == RoomListing.room_id).filter(
         RoomListing.status == ListingStatus.published,
         RoomListing.is_public.is_(True),
-        RoomListing.is_verified.is_(True),
         Room.status == RoomStatus.vacant,
     )
+    if verified_only:
+        query = query.filter(RoomListing.verification_status == ListingVerificationStatus.verified)
     if location_area:
         query = query.filter(RoomListing.location_area.ilike(f"%{location_area}%"))
     if room_type:
         query = query.filter(RoomListing.room_type == room_type)
+    if room_size:
+        query = query.filter(RoomListing.room_size.ilike(f"%{room_size}%"))
+    if min_rent:
+        query = query.filter(RoomListing.rent_price >= min_rent)
     if max_rent:
         query = query.filter(RoomListing.rent_price <= max_rent)
-    return query.order_by(RoomListing.created_at.desc()).all()
+    if distance_from_nul:
+        query = query.filter(RoomListing.distance_from_nul.ilike(f"%{distance_from_nul}%"))
+    if water_available is not None:
+        query = query.filter(RoomListing.water_available.is_(water_available))
+    if electricity_available is not None:
+        query = query.filter(RoomListing.electricity_available.is_(electricity_available))
+    if furnished is not None:
+        query = query.filter(RoomListing.furnished.is_(furnished))
+    return query.order_by(RoomListing.verification_status.desc(), RoomListing.created_at.desc()).all()
 
 
 @router.get("/{listing_id}", response_model=ListingRead)

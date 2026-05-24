@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.audit import log_action
 from app.database import get_db
 from app.dependencies import require_roles
-from app.models import AuditAction, PaymentReceipt, PaymentSubmission, PaymentSubmissionStatus, RentDue, Tenant, User, UserRole
+from app.models import AuditAction, Notification, Occupancy, PaymentReceipt, PaymentSubmission, PaymentSubmissionStatus, RentDue, Tenant, User, UserRole
 from app.ownership import get_tenant_in_scope, landlord_scope_filter
 from app.rent_logic import refresh_due_status
 from app.schemas import PaymentReceiptRead, PaymentSubmissionCreate, PaymentSubmissionRead
@@ -63,14 +63,24 @@ def approve_submission(submission_id: uuid.UUID, db: Session = Depends(get_db), 
         if tenant:
             tenant.outstanding_balance = max(0, float(tenant.outstanding_balance or 0) - float(submission.amount))
     if not db.query(PaymentReceipt).filter(PaymentReceipt.payment_submission_id == submission.id).first():
+        room_id = None
+        if submission.rent_due_id:
+            occupancy = db.get(Occupancy, due.occupancy_id) if due else None
+            room_id = occupancy.room_id if occupancy else None
         db.add(PaymentReceipt(
             landlord_id=submission.landlord_id,
             tenant_id=submission.tenant_id,
+            room_id=room_id,
             payment_submission_id=submission.id,
             receipt_number=next_receipt_number(db),
             amount=submission.amount,
             method=submission.method,
+            transaction_reference=submission.transaction_reference,
+            pdf_url=f"/payment-submissions/{submission.id}/receipt",
         ))
+    tenant_for_notice = db.get(Tenant, submission.tenant_id)
+    if tenant_for_notice and tenant_for_notice.user_id:
+        db.add(Notification(user_id=tenant_for_notice.user_id, title="Payment approved", body=f"Payment {submission.transaction_reference} was approved and a receipt was generated.", category="payments"))
     log_action(db, AuditAction.approve_payment_submission, user, submission.landlord_id, "PaymentSubmission", submission.id)
     db.commit()
     db.refresh(submission)

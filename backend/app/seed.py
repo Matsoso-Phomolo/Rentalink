@@ -9,6 +9,7 @@ from app.database import SessionLocal
 from app.models import (
     AllowedTenantType,
     Landlord,
+    ListingVerificationStatus,
     ListingStatus,
     Notification,
     Occupancy,
@@ -23,6 +24,7 @@ from app.models import (
     RoomListing,
     RoomStatus,
     RoomType,
+    SubscriptionPlan,
     SupportTicket,
     Tenant,
     TenantType,
@@ -30,6 +32,7 @@ from app.models import (
     User,
     UserRole,
 )
+from app.lease_logic import generate_lease_for_occupancy
 
 ADMIN_EMAIL = "admin@linelink.local"
 LANDLORD_EMAIL = "landlord1@linelink.com"
@@ -203,6 +206,7 @@ def seed_listings(db: Session, landlord: Landlord, prop: Property, rooms: dict[s
                 status=ListingStatus.published,
                 is_public=True,
                 is_verified=True,
+                verification_status=ListingVerificationStatus.verified,
             )
             db.add(listing)
             db.flush()
@@ -226,6 +230,11 @@ def seed_listings(db: Session, landlord: Landlord, prop: Property, rooms: dict[s
         listing.status = ListingStatus.published
         listing.is_public = True
         listing.is_verified = True
+        listing.verification_status = ListingVerificationStatus.verified
+        listing.internet_included = True
+        listing.furnished = room.room_number in {"A-103", "B-102"}
+        listing.parking_available = False
+        listing.pets_allowed = False
         listings[room.room_number] = listing
     return listings
 
@@ -280,6 +289,7 @@ def seed_occupancy_and_rent(db: Session, landlord: Landlord, tenant: Tenant, roo
     occupancy.billing_start_month = current_month()
     occupancy.status = OccupancyStatus.active
     room.status = RoomStatus.occupied
+    generate_lease_for_occupancy(db, occupancy)
 
     due = db.query(RentDue).filter(RentDue.occupancy_id == occupancy.id, RentDue.due_month == current_month()).first()
     if not due:
@@ -354,6 +364,16 @@ def seed_notification(db: Session, user: User, title: str, body: str, category: 
     return notification
 
 
+def seed_subscription_plans(db: Session) -> None:
+    plan = db.query(SubscriptionPlan).filter(SubscriptionPlan.name == "Starter").first()
+    if not plan:
+        plan = SubscriptionPlan(name="Starter", monthly_price=Decimal("99"), max_properties=2, max_rooms=20)
+        db.add(plan)
+        db.flush()
+    plan.features = "Room listings, tenant management, rent tracking, support tickets"
+    plan.is_active = True
+
+
 def seed_demo_data(db: Session) -> dict[str, object]:
     if is_production() and not should_seed_demo_data():
         raise RuntimeError("Refusing to seed demo data in production when SEED_DEMO_DATA=false")
@@ -371,6 +391,7 @@ def seed_demo_data(db: Session) -> dict[str, object]:
     seed_support_ticket(db, landlord, tenant)
     seed_notification(db, landlord_user, "New payment submission", "Test Tenant submitted MPESA-DEMO-001 for M450.", "payments")
     seed_notification(db, tenant_user, "Rent due created", "Your current month rent due is M450.", "rent_dues")
+    seed_subscription_plans(db)
     return {
         "landlord": landlord,
         "property": prop,

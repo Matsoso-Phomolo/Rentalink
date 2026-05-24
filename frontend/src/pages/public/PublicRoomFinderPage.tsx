@@ -56,14 +56,19 @@ export function PublicRoomFinderPage() {
   const [query, setQuery] = useState("");
   const [type, setType] = useState("all");
   const [size, setSize] = useState("");
+  const [minRent, setMinRent] = useState("");
   const [maxRent, setMaxRent] = useState("");
+  const [distance, setDistance] = useState("");
+  const [mustHaveWater, setMustHaveWater] = useState(false);
+  const [mustHaveElectricity, setMustHaveElectricity] = useState(false);
+  const [mustBeFurnished, setMustBeFurnished] = useState(false);
   const [application, setApplication] = useState<ApplicationForm>(emptyApplication);
   const [viewing, setViewing] = useState<ViewingForm>(emptyViewing);
   const [formMessage, setFormMessage] = useState("");
   const [submitting, setSubmitting] = useState("");
 
   useEffect(() => {
-    apiFetch("/public/listings")
+    apiFetch("/public/listings?verified_only=true")
       .then(setListings)
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load listings"))
       .finally(() => setLoading(false));
@@ -71,16 +76,23 @@ export function PublicRoomFinderPage() {
 
   const filteredListings = useMemo(() => {
     const normalized = query.trim().toLowerCase();
+    const rentFloor = minRent ? Number(minRent) : null;
     const rentLimit = maxRent ? Number(maxRent) : null;
+    const distanceTerm = distance.trim().toLowerCase();
     return listings.filter((listing) => {
       const text = `${listing.title} ${listing.property_name ?? ""} ${listing.location_area} ${listing.room_size ?? ""} ${listing.description ?? ""}`.toLowerCase();
       const matchesQuery = !normalized || text.includes(normalized);
       const matchesType = type === "all" || listing.room_type === type;
       const matchesSize = !size || (listing.room_size ?? "").toLowerCase().includes(size.toLowerCase());
+      const matchesMinRent = !rentFloor || Number(listing.rent_price) >= rentFloor;
       const matchesRent = !rentLimit || Number(listing.rent_price) <= rentLimit;
-      return matchesQuery && matchesType && matchesSize && matchesRent;
+      const matchesDistance = !distanceTerm || (listing.distance_from_nul ?? "").toLowerCase().includes(distanceTerm);
+      const matchesWater = !mustHaveWater || listing.water_available;
+      const matchesElectricity = !mustHaveElectricity || listing.electricity_available;
+      const matchesFurnished = !mustBeFurnished || listing.furnished;
+      return matchesQuery && matchesType && matchesSize && matchesMinRent && matchesRent && matchesDistance && matchesWater && matchesElectricity && matchesFurnished;
     });
-  }, [listings, maxRent, query, size, type]);
+  }, [distance, listings, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, size, type]);
 
   const selectedListing = listings.find((listing) => listing.id === selectedListingId) ?? null;
 
@@ -186,7 +198,12 @@ export function PublicRoomFinderPage() {
                 <option value="double">Double</option>
               </select>
               <input placeholder="Room size" value={size} onChange={(event) => setSize(event.target.value)} />
+              <input placeholder="Min rent" inputMode="numeric" value={minRent} onChange={(event) => setMinRent(event.target.value)} />
               <input placeholder="Max rent" inputMode="numeric" value={maxRent} onChange={(event) => setMaxRent(event.target.value)} />
+              <input placeholder="Distance from NUL" value={distance} onChange={(event) => setDistance(event.target.value)} />
+              <label className="inline-check"><input type="checkbox" checked={mustHaveWater} onChange={(event) => setMustHaveWater(event.target.checked)} /> Water</label>
+              <label className="inline-check"><input type="checkbox" checked={mustHaveElectricity} onChange={(event) => setMustHaveElectricity(event.target.checked)} /> Electricity</label>
+              <label className="inline-check"><input type="checkbox" checked={mustBeFurnished} onChange={(event) => setMustBeFurnished(event.target.checked)} /> Furnished</label>
             </div>
           </div>
           {filteredListings.length > 0 ? (
@@ -196,6 +213,7 @@ export function PublicRoomFinderPage() {
                   <div>
                     <div className="card-topline">
                       <StatusPill value="vacant" />
+                      {listing.verification_status === "verified" || listing.is_verified ? <StatusPill value="verified" /> : null}
                       <span>{listing.distance_from_nul ?? "Near NUL"}</span>
                     </div>
                     <h2>{roomLabel(listing)} - {listing.room_size} {listing.room_type}</h2>
@@ -219,6 +237,13 @@ export function PublicRoomFinderPage() {
                       <dd>{listing.location_area}</dd>
                     </div>
                   </dl>
+                  <div className="amenities compact">
+                    {listing.water_available ? <span>Water</span> : null}
+                    {listing.electricity_available ? <span>Electricity</span> : null}
+                    {listing.internet_included ? <span>Internet</span> : null}
+                    {listing.furnished ? <span>Furnished</span> : null}
+                    {listing.parking_available ? <span>Parking</span> : null}
+                  </div>
                   <footer>
                     <strong>{listing.contact_phone}</strong>
                     <button className="secondary-button" type="button" onClick={() => setSelectedListingId(listing.id)}>
@@ -242,6 +267,7 @@ export function PublicRoomFinderPage() {
             </button>
             <div className="card-topline">
               <StatusPill value="vacant" />
+              {selectedListing.verification_status === "verified" || selectedListing.is_verified ? <StatusPill value="verified" /> : null}
               <span>{selectedListing.property_name ?? "Line-house"} - {selectedListing.location_area}</span>
             </div>
             <h2>{roomLabel(selectedListing)} - {selectedListing.room_size} {selectedListing.room_type}</h2>
@@ -267,6 +293,10 @@ export function PublicRoomFinderPage() {
             <div className="amenities">
               {selectedListing.water_available ? <span>Water available</span> : null}
               {selectedListing.electricity_available ? <span>Electricity available</span> : null}
+              {selectedListing.internet_included ? <span>Internet included</span> : null}
+              {selectedListing.furnished ? <span>Furnished</span> : null}
+              {selectedListing.parking_available ? <span>Parking available</span> : null}
+              {selectedListing.pets_allowed ? <span>Pets allowed</span> : null}
               {selectedListing.security_features ? <span>{selectedListing.security_features}</span> : null}
               {selectedListing.house_rules ? <span>{selectedListing.house_rules}</span> : null}
             </div>

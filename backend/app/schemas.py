@@ -11,6 +11,13 @@ from app.models import (
     InvitationStatus,
     LandlordRequestStatus,
     ListingStatus,
+    ListingVerificationStatus,
+    LeaseStatus,
+    MessageThreadStatus,
+    InspectionStatus,
+    InspectionType,
+    DamageStatus,
+    SubscriptionStatus,
     PaymentMethod,
     PaymentSubmissionStatus,
     RentDueStatus,
@@ -299,12 +306,15 @@ class PaymentReceiptRead(ORMModel):
     id: uuid.UUID
     landlord_id: uuid.UUID
     tenant_id: uuid.UUID
+    room_id: uuid.UUID | None = None
     payment_submission_id: uuid.UUID
     receipt_number: str
     amount: float
     method: PaymentMethod
+    transaction_reference: str | None = None
     issued_at: datetime
     pdf_path: str | None = None
+    pdf_url: str | None = None
 
 
 class ListingBase(BaseModel):
@@ -323,11 +333,18 @@ class ListingBase(BaseModel):
     contact_phone: str | None = None
     water_available: bool = False
     electricity_available: bool = False
+    internet_included: bool = False
+    furnished: bool = False
+    parking_available: bool = False
+    pets_allowed: bool = False
+    gender_preference: str | None = None
     security_features: str | None = None
     house_rules: str | None = None
     status: ListingStatus = ListingStatus.draft
     is_public: bool = False
     is_verified: bool = False
+    verification_status: ListingVerificationStatus = ListingVerificationStatus.unverified
+    verification_note: str | None = None
 
 
 class ListingCreate(ListingBase):
@@ -344,11 +361,18 @@ class ListingUpdate(BaseModel):
     contact_phone: str | None = None
     water_available: bool | None = None
     electricity_available: bool | None = None
+    internet_included: bool | None = None
+    furnished: bool | None = None
+    parking_available: bool | None = None
+    pets_allowed: bool | None = None
+    gender_preference: str | None = None
     security_features: str | None = None
     house_rules: str | None = None
     status: ListingStatus | None = None
     is_public: bool | None = None
     is_verified: bool | None = None
+    verification_status: ListingVerificationStatus | None = None
+    verification_note: str | None = None
 
 
 class ListingRead(ListingBase, ORMModel):
@@ -550,4 +574,122 @@ class ComplaintRead(ComplaintCreate, ORMModel):
     landlord_id: uuid.UUID | None = None
     sender_user_id: uuid.UUID
     status: ComplaintStatus
+    created_at: datetime
+
+
+class LeaseAgreementRead(ORMModel):
+    id: uuid.UUID
+    landlord_id: uuid.UUID
+    tenant_id: uuid.UUID
+    property_id: uuid.UUID
+    room_id: uuid.UUID
+    occupancy_id: uuid.UUID
+    lease_number: str
+    start_date: date
+    end_date: date | None = None
+    monthly_rent: float
+    deposit_amount: float
+    terms: str | None = None
+    status: LeaseStatus
+    tenant_signed_at: datetime | None = None
+    landlord_signed_at: datetime | None = None
+    pdf_url: str | None = None
+    created_at: datetime
+
+
+class LeaseUpdate(BaseModel):
+    end_date: date | None = None
+    terms: str | None = None
+    status: LeaseStatus | None = None
+
+
+class MessageThreadCreate(BaseModel):
+    subject: str
+    application_id: uuid.UUID | None = None
+    support_ticket_id: uuid.UUID | None = None
+    lease_id: uuid.UUID | None = None
+    payment_submission_id: uuid.UUID | None = None
+
+
+class MessageThreadRead(MessageThreadCreate, ORMModel):
+    id: uuid.UUID
+    landlord_id: uuid.UUID | None = None
+    status: MessageThreadStatus
+    created_at: datetime
+
+
+class MessageCreate(BaseModel):
+    body: str
+
+
+class MessageRead(MessageCreate, ORMModel):
+    id: uuid.UUID
+    thread_id: uuid.UUID
+    sender_user_id: uuid.UUID
+    read_at: datetime | None = None
+    created_at: datetime
+
+
+class RoomInspectionCreate(BaseModel):
+    tenant_id: uuid.UUID | None = None
+    room_id: uuid.UUID
+    occupancy_id: uuid.UUID | None = None
+    inspection_type: InspectionType
+    room_condition: str | None = None
+    walls: str | None = None
+    door_lock: str | None = None
+    windows: str | None = None
+    electricity: str | None = None
+    water: str | None = None
+    furniture: str | None = None
+    notes: str | None = None
+
+
+class RoomInspectionRead(RoomInspectionCreate, ORMModel):
+    id: uuid.UUID
+    landlord_id: uuid.UUID
+    status: InspectionStatus
+    completed_at: datetime | None = None
+    created_at: datetime
+
+
+class DamageRecordCreate(BaseModel):
+    tenant_id: uuid.UUID | None = None
+    room_id: uuid.UUID
+    inspection_id: uuid.UUID | None = None
+    description: str
+    estimated_cost: float = 0
+
+
+class DamageRecordRead(DamageRecordCreate, ORMModel):
+    id: uuid.UUID
+    landlord_id: uuid.UUID
+    status: DamageStatus
+    created_at: datetime
+
+
+class SubscriptionPlanCreate(BaseModel):
+    name: str
+    monthly_price: float = 0
+    max_properties: int = 1
+    max_rooms: int = 10
+    features: str | None = None
+    is_active: bool = True
+
+
+class SubscriptionPlanRead(SubscriptionPlanCreate, ORMModel):
+    id: uuid.UUID
+    created_at: datetime
+
+
+class LandlordSubscriptionCreate(BaseModel):
+    landlord_id: uuid.UUID
+    plan_id: uuid.UUID
+    status: SubscriptionStatus = SubscriptionStatus.active
+    start_date: date
+    renewal_date: date | None = None
+
+
+class LandlordSubscriptionRead(LandlordSubscriptionCreate, ORMModel):
+    id: uuid.UUID
     created_at: datetime

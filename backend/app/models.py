@@ -92,6 +92,13 @@ class ListingStatus(str, enum.Enum):
     archived = "archived"
 
 
+class ListingVerificationStatus(str, enum.Enum):
+    unverified = "unverified"
+    pending_verification = "pending_verification"
+    verified = "verified"
+    rejected = "rejected"
+
+
 class AllowedTenantType(str, enum.Enum):
     student = "student"
     non_student = "non_student"
@@ -146,8 +153,51 @@ class AuditAction(str, enum.Enum):
     create_support_ticket = "CREATE_SUPPORT_TICKET"
     update_support_ticket = "UPDATE_SUPPORT_TICKET"
     approve_landlord = "APPROVE_LANDLORD"
+    issue_lease = "ISSUE_LEASE"
+    sign_lease = "SIGN_LEASE"
+    verify_listing = "VERIFY_LISTING"
+    create_damage_record = "CREATE_DAMAGE_RECORD"
     login_success = "LOGIN_SUCCESS"
     login_failure = "LOGIN_FAILURE"
+
+
+class LeaseStatus(str, enum.Enum):
+    draft = "draft"
+    issued = "issued"
+    signed = "signed"
+    active = "active"
+    expired = "expired"
+    terminated = "terminated"
+
+
+class MessageThreadStatus(str, enum.Enum):
+    open = "open"
+    closed = "closed"
+
+
+class InspectionType(str, enum.Enum):
+    move_in = "move_in"
+    move_out = "move_out"
+
+
+class InspectionStatus(str, enum.Enum):
+    draft = "draft"
+    completed = "completed"
+
+
+class DamageStatus(str, enum.Enum):
+    reported = "reported"
+    verified = "verified"
+    charged = "charged"
+    waived = "waived"
+    repaired = "repaired"
+
+
+class SubscriptionStatus(str, enum.Enum):
+    active = "active"
+    trialing = "trialing"
+    past_due = "past_due"
+    cancelled = "cancelled"
 
 
 def uuid_pk() -> Mapped[uuid.UUID]:
@@ -358,12 +408,15 @@ class PaymentReceipt(Base, TimestampMixin):
     id: Mapped[uuid.UUID] = uuid_pk()
     landlord_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlords.id"), index=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    room_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("rooms.id"), nullable=True, index=True)
     payment_submission_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("payment_submissions.id"), unique=True, index=True)
     receipt_number: Mapped[str] = mapped_column(String(80), unique=True, index=True)
     amount: Mapped[float] = mapped_column(Numeric(12, 2))
     method: Mapped[PaymentMethod] = mapped_column(Enum(PaymentMethod, name="payment_method"))
+    transaction_reference: Mapped[str | None] = mapped_column(String(160), index=True)
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     pdf_path: Mapped[str | None] = mapped_column(String(500))
+    pdf_url: Mapped[str | None] = mapped_column(String(500))
 
 
 class RoomListing(Base, TimestampMixin):
@@ -386,11 +439,18 @@ class RoomListing(Base, TimestampMixin):
     contact_phone: Mapped[str | None] = mapped_column(String(40))
     water_available: Mapped[bool] = mapped_column(Boolean, default=False)
     electricity_available: Mapped[bool] = mapped_column(Boolean, default=False)
+    internet_included: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    furnished: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    parking_available: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    pets_allowed: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    gender_preference: Mapped[str | None] = mapped_column(String(80))
     security_features: Mapped[str | None] = mapped_column(Text)
     house_rules: Mapped[str | None] = mapped_column(Text)
     status: Mapped[ListingStatus] = mapped_column(Enum(ListingStatus, name="listing_status"), default=ListingStatus.draft, index=True)
     is_public: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    verification_status: Mapped[ListingVerificationStatus] = mapped_column(Enum(ListingVerificationStatus, name="listing_verification_status"), default=ListingVerificationStatus.unverified, index=True)
+    verification_note: Mapped[str | None] = mapped_column(Text)
 
     room: Mapped[Room] = relationship(viewonly=True)
     listing_property: Mapped[Property] = relationship("Property", viewonly=True)
@@ -571,6 +631,107 @@ class PasswordResetToken(Base, TimestampMixin):
     channel: Mapped[str] = mapped_column(String(40), default="email")
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class LeaseAgreement(Base, TimestampMixin):
+    __tablename__ = "lease_agreements"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlords.id"), index=True)
+    tenant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tenants.id"), index=True)
+    property_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("properties.id"), index=True)
+    room_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rooms.id"), index=True)
+    occupancy_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("occupancies.id"), index=True)
+    lease_number: Mapped[str] = mapped_column(String(80), unique=True, index=True)
+    start_date: Mapped[date] = mapped_column(Date)
+    end_date: Mapped[date | None] = mapped_column(Date)
+    monthly_rent: Mapped[float] = mapped_column(Numeric(12, 2))
+    deposit_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    terms: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[LeaseStatus] = mapped_column(Enum(LeaseStatus, name="lease_status"), default=LeaseStatus.draft, index=True)
+    tenant_signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    landlord_signed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    pdf_url: Mapped[str | None] = mapped_column(String(500))
+
+
+class MessageThread(Base, TimestampMixin):
+    __tablename__ = "message_threads"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("landlords.id"), nullable=True, index=True)
+    subject: Mapped[str] = mapped_column(String(255))
+    application_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tenant_applications.id"), nullable=True, index=True)
+    support_ticket_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("support_tickets.id"), nullable=True, index=True)
+    lease_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("lease_agreements.id"), nullable=True, index=True)
+    payment_submission_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("payment_submissions.id"), nullable=True, index=True)
+    status: Mapped[MessageThreadStatus] = mapped_column(Enum(MessageThreadStatus, name="message_thread_status"), default=MessageThreadStatus.open, index=True)
+
+
+class Message(Base, TimestampMixin):
+    __tablename__ = "messages"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    thread_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("message_threads.id"), index=True)
+    sender_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    body: Mapped[str] = mapped_column(Text)
+    read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class RoomInspection(Base, TimestampMixin):
+    __tablename__ = "room_inspections"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlords.id"), index=True)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    room_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rooms.id"), index=True)
+    occupancy_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("occupancies.id"), nullable=True, index=True)
+    inspection_type: Mapped[InspectionType] = mapped_column(Enum(InspectionType, name="inspection_type"), index=True)
+    status: Mapped[InspectionStatus] = mapped_column(Enum(InspectionStatus, name="inspection_status"), default=InspectionStatus.draft, index=True)
+    room_condition: Mapped[str | None] = mapped_column(Text)
+    walls: Mapped[str | None] = mapped_column(Text)
+    door_lock: Mapped[str | None] = mapped_column(Text)
+    windows: Mapped[str | None] = mapped_column(Text)
+    electricity: Mapped[str | None] = mapped_column(Text)
+    water: Mapped[str | None] = mapped_column(Text)
+    furniture: Mapped[str | None] = mapped_column(Text)
+    notes: Mapped[str | None] = mapped_column(Text)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class DamageRecord(Base, TimestampMixin):
+    __tablename__ = "damage_records"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlords.id"), index=True)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    room_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("rooms.id"), index=True)
+    inspection_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("room_inspections.id"), nullable=True, index=True)
+    description: Mapped[str] = mapped_column(Text)
+    estimated_cost: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    status: Mapped[DamageStatus] = mapped_column(Enum(DamageStatus, name="damage_status"), default=DamageStatus.reported, index=True)
+
+
+class SubscriptionPlan(Base, TimestampMixin):
+    __tablename__ = "subscription_plans"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    name: Mapped[str] = mapped_column(String(120), unique=True)
+    monthly_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    max_properties: Mapped[int] = mapped_column(Integer, default=1)
+    max_rooms: Mapped[int] = mapped_column(Integer, default=10)
+    features: Mapped[str | None] = mapped_column(Text)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+
+class LandlordSubscription(Base, TimestampMixin):
+    __tablename__ = "landlord_subscriptions"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlords.id"), index=True)
+    plan_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("subscription_plans.id"), index=True)
+    status: Mapped[SubscriptionStatus] = mapped_column(Enum(SubscriptionStatus, name="subscription_status"), default=SubscriptionStatus.active, index=True)
+    start_date: Mapped[date] = mapped_column(Date)
+    renewal_date: Mapped[date | None] = mapped_column(Date)
 
 
 class AuditLog(Base):

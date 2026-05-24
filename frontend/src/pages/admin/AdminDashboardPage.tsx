@@ -2,7 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { apiFetch } from "../../api/client";
 import { ErrorState, LoadingState } from "../../components/DataState";
 import { StatusPill } from "../../components/StatusPill";
-import type { Landlord, LandlordRequest } from "../../types";
+import type { Landlord, LandlordRequest, Listing, SubscriptionPlan } from "../../types";
 
 type ManualLandlordForm = {
   business_name: string;
@@ -22,6 +22,14 @@ const emptyManual: ManualLandlordForm = {
   password: ""
 };
 
+const emptyPlan = {
+  name: "",
+  monthly_price: "0",
+  max_properties: "1",
+  max_rooms: "10",
+  features: ""
+};
+
 function nullable(value: string) {
   return value.trim() ? value.trim() : null;
 }
@@ -29,7 +37,10 @@ function nullable(value: string) {
 export function AdminDashboardPage() {
   const [landlords, setLandlords] = useState<Landlord[]>([]);
   const [requests, setRequests] = useState<LandlordRequest[]>([]);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [manual, setManual] = useState<ManualLandlordForm>(emptyManual);
+  const [planForm, setPlanForm] = useState(emptyPlan);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -45,6 +56,12 @@ export function AdminDashboardPage() {
       ]);
       setLandlords(landlordItems);
       setRequests(requestItems);
+      const [listingItems, planItems] = await Promise.all([
+        apiFetch("/listings/mine") as Promise<Listing[]>,
+        apiFetch("/subscriptions/plans") as Promise<SubscriptionPlan[]>
+      ]);
+      setListings(listingItems);
+      setPlans(planItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load admin data");
     } finally {
@@ -109,6 +126,60 @@ export function AdminDashboardPage() {
       await loadData();
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not disable landlord");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function decideListing(listing: Listing, action: "verify" | "reject-verification") {
+    setBusyId(listing.id);
+    setNotice("");
+    try {
+      await apiFetch(`/listings/${listing.id}/${action}`, {
+        method: "PUT",
+        body: JSON.stringify({ landlord_note: action === "verify" ? "Listing verified by platform admin." : "Listing needs more verification before public visibility." })
+      });
+      setNotice(action === "verify" ? "Listing verified." : "Listing rejected for verification.");
+      await loadData();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not update listing verification");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function savePlan(event: FormEvent) {
+    event.preventDefault();
+    setNotice("");
+    try {
+      await apiFetch("/subscriptions/plans", {
+        method: "POST",
+        body: JSON.stringify({
+          name: planForm.name,
+          monthly_price: Number(planForm.monthly_price),
+          max_properties: Number(planForm.max_properties),
+          max_rooms: Number(planForm.max_rooms),
+          features: nullable(planForm.features),
+          is_active: true
+        })
+      });
+      setPlanForm(emptyPlan);
+      setNotice("Subscription plan added.");
+      await loadData();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not save subscription plan");
+    }
+  }
+
+  async function disablePlan(plan: SubscriptionPlan) {
+    setBusyId(plan.id);
+    setNotice("");
+    try {
+      await apiFetch(`/subscriptions/plans/${plan.id}`, { method: "DELETE" });
+      setNotice("Subscription plan disabled.");
+      await loadData();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not disable plan");
     } finally {
       setBusyId("");
     }
@@ -179,6 +250,64 @@ export function AdminDashboardPage() {
                 ))}
               </div>
             </div>
+          </div>
+
+          <div className="admin-grid">
+            <div className="panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Anti-scam controls</p>
+                  <h2>Listing verification</h2>
+                </div>
+              </div>
+              <div className="list-stack compact-list">
+                {listings.length === 0 ? <div className="data-state">No listings have been submitted for verification yet.</div> : null}
+                {listings.slice(0, 8).map((listing) => (
+                  <article className="application-card" key={listing.id}>
+                    <div>
+                      <div className="card-topline">
+                        <StatusPill value={listing.verification_status ?? (listing.is_verified ? "verified" : "unverified")} />
+                        <span>{listing.status}</span>
+                      </div>
+                      <strong>{listing.title}</strong>
+                      <p>{listing.property_name ?? listing.location_area} - {listing.room_number ?? "Room"}</p>
+                    </div>
+                    <div className="review-actions">
+                      <button type="button" disabled={busyId === listing.id} onClick={() => decideListing(listing, "verify")}>Verify</button>
+                      <button type="button" disabled={busyId === listing.id} onClick={() => decideListing(listing, "reject-verification")}>Reject</button>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <form className="panel form-panel" onSubmit={savePlan}>
+              <div>
+                <p className="eyebrow">SaaS monetization</p>
+                <h2>Add subscription plan</h2>
+              </div>
+              <label>Plan name<input required value={planForm.name} onChange={(event) => setPlanForm((current) => ({ ...current, name: event.target.value }))} /></label>
+              <div className="form-grid">
+                <label>Monthly price<input required inputMode="numeric" value={planForm.monthly_price} onChange={(event) => setPlanForm((current) => ({ ...current, monthly_price: event.target.value }))} /></label>
+                <label>Max properties<input required inputMode="numeric" value={planForm.max_properties} onChange={(event) => setPlanForm((current) => ({ ...current, max_properties: event.target.value }))} /></label>
+              </div>
+              <label>Max rooms<input required inputMode="numeric" value={planForm.max_rooms} onChange={(event) => setPlanForm((current) => ({ ...current, max_rooms: event.target.value }))} /></label>
+              <label>Features<textarea value={planForm.features} onChange={(event) => setPlanForm((current) => ({ ...current, features: event.target.value }))} /></label>
+              <button className="primary-button" type="submit">Create plan</button>
+              <div className="list-stack compact-list">
+                {plans.map((plan) => (
+                  <article className="row-item" key={plan.id}>
+                    <div>
+                      <strong>{plan.name}</strong>
+                      <p>M{Number(plan.monthly_price).toLocaleString()} monthly - {plan.max_rooms} rooms</p>
+                    </div>
+                    <button type="button" disabled={busyId === plan.id || !plan.is_active} onClick={() => disablePlan(plan)}>
+                      {plan.is_active ? "Disable" : "Disabled"}
+                    </button>
+                  </article>
+                ))}
+              </div>
+            </form>
           </div>
 
           <div className="list-stack">
