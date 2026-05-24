@@ -7,6 +7,7 @@ import { ChangePasswordPage } from "../pages/ChangePasswordPage";
 import { PublicRoomFinderPage } from "../pages/public/PublicRoomFinderPage";
 import { ApplicationFormPage } from "../pages/public/ApplicationFormPage";
 import { LandlordDashboardPage } from "../pages/landlord/LandlordDashboardPage";
+import { PropertiesPage } from "../pages/landlord/PropertiesPage";
 import { RoomsPage } from "../pages/landlord/RoomsPage";
 import { ListingsPage } from "../pages/landlord/ListingsPage";
 import { LeasesPage } from "../pages/landlord/LeasesPage";
@@ -42,6 +43,7 @@ export function AppRoutes() {
           </Route>
           <Route element={<ProtectedRoute roles={["landlord", "caretaker", "admin"]} />}>
             <Route path="/landlord" element={<LandlordDashboardPage />} />
+            <Route path="/landlord/properties" element={<PropertiesPage />} />
             <Route path="/landlord/rooms" element={<RoomsPage />} />
             <Route path="/landlord/listings" element={<ListingsPage />} />
             <Route path="/landlord/leases" element={<LeasesPage />} />

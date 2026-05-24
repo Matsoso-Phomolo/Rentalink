@@ -3,6 +3,7 @@ import { useAuth } from "../auth/AuthContext";
 
 const landlordLinks = [
   { to: "/landlord", label: "Dashboard" },
+  { to: "/landlord/properties", label: "Properties" },
   { to: "/landlord/rooms", label: "Rooms" },
   { to: "/landlord/listings", label: "Listings" },
   { to: "/landlord/leases", label: "Leases" },

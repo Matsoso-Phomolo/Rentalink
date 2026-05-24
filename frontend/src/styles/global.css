@@ -941,6 +941,33 @@ th {
   background: #f8faf7;
 }
 
+.chip-button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid #cfe0d9;
+  border-radius: 999px;
+  background: #ffffff;
+  color: #27413d;
+  font-weight: 800;
+}
+
+.table-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 340px;
+}
+
+.table-actions button {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #263634;
+  font-weight: 800;
+}
+
 .status-pill {
   display: inline-flex;
   align-items: center;

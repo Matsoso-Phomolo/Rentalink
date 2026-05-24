@@ -32,12 +32,15 @@ export type DashboardSummary = {
 
 export type PropertyItem = {
   id: string;
+  landlord_id: string;
+  category_id?: string | null;
   name: string;
   description?: string | null;
   location_area: string;
   address?: string | null;
   country?: string | null;
   distance_from_nul?: string | null;
+  created_at?: string;
 };
 
 export type Room = {
@@ -50,6 +53,8 @@ export type Room = {
   room_size?: string | null;
   rent_price: number;
   deposit_amount: number;
+  notes?: string | null;
+  category_id?: string | null;
 };
 
 export type Listing = {

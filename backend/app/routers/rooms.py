@@ -1,11 +1,11 @@
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies import get_current_user, require_roles
-from app.models import Room, RoomListing, RoomStatus, User, UserRole, ListingStatus
+from app.models import Occupancy, OccupancyStatus, Room, RoomListing, RoomStatus, User, UserRole, ListingStatus
 from app.ownership import get_property_in_scope, get_room_in_scope, landlord_scope_filter
 from app.schemas import RoomCreate, RoomRead, RoomUpdate
 
@@ -39,3 +39,15 @@ def update_room(room_id: uuid.UUID, payload: RoomUpdate, db: Session = Depends(g
     db.commit()
     db.refresh(room)
     return room
+
+
+@router.delete("/{room_id}")
+def delete_room(room_id: uuid.UUID, db: Session = Depends(get_db), user: User = Depends(require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker))):
+    room = get_room_in_scope(db, user, room_id)
+    active_occupancy = db.query(Occupancy).filter(Occupancy.room_id == room.id, Occupancy.status == OccupancyStatus.active).first()
+    if active_occupancy:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Move out the tenant before deleting this occupied room.")
+    db.query(RoomListing).filter(RoomListing.room_id == room.id).update({"status": ListingStatus.archived, "is_public": False})
+    db.delete(room)
+    db.commit()
+    return {"detail": "Room deleted"}

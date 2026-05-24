@@ -81,6 +81,13 @@ def my_listings(db: Session = Depends(get_db), user: User = Depends(require_role
 @router.put("/{listing_id}", response_model=ListingRead)
 def update_listing(listing_id: uuid.UUID, payload: ListingUpdate, db: Session = Depends(get_db), user: User = Depends(require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker))):
     listing = listing_in_scope(db, user, listing_id)
+    values = payload.model_dump(exclude_unset=True)
+    property_id = values.get("property_id", listing.property_id)
+    room_id = values.get("room_id", listing.room_id)
+    prop = get_property_in_scope(db, user, property_id)
+    room = get_room_in_scope(db, user, room_id)
+    if room.property_id != prop.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Room does not belong to the selected property")
     for key, value in payload.model_dump(exclude_unset=True).items():
         setattr(listing, key, value)
     if listing.is_public and listing.status == ListingStatus.published and listing.verification_status != ListingVerificationStatus.verified:

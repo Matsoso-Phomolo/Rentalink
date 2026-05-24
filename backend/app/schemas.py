@@ -156,6 +156,16 @@ class PropertyCreate(PropertyBase):
     category_id: uuid.UUID | None = None
 
 
+class PropertyUpdate(BaseModel):
+    category_id: uuid.UUID | None = None
+    name: str | None = None
+    description: str | None = None
+    location_area: str | None = None
+    address: str | None = None
+    country: str | None = None
+    distance_from_nul: str | None = None
+
+
 class PropertyRead(PropertyBase, ORMModel):
     id: uuid.UUID
     landlord_id: uuid.UUID
@@ -352,10 +362,15 @@ class ListingCreate(ListingBase):
 
 
 class ListingUpdate(BaseModel):
+    property_id: uuid.UUID | None = None
+    room_id: uuid.UUID | None = None
     title: str | None = None
     description: str | None = None
     rent_price: float | None = None
     deposit_amount: float | None = None
+    room_type: RoomType | None = None
+    room_size: str | None = None
+    location_area: str | None = None
     allowed_tenant_type: AllowedTenantType | None = None
     available_from: date | None = None
     contact_phone: str | None = None
