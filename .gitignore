@@ -28,6 +28,7 @@ build/
 
 # Internal/local docs
 README_LOCAL.md
+ReadMe.Local
 *_LOCAL.md
 docs/internal/
 internal/
