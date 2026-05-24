@@ -5,6 +5,7 @@ const landlordLinks = [
   { to: "/landlord", label: "Dashboard" },
   { to: "/landlord/rooms", label: "Rooms" },
   { to: "/landlord/listings", label: "Listings" },
+  { to: "/landlord/requests", label: "Room Requests" },
   { to: "/landlord/payments", label: "Payments" },
   { to: "/landlord/support", label: "Support" }
 ];

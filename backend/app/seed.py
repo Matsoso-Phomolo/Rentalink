@@ -105,6 +105,9 @@ def seed_landlord(db: Session, user: User) -> Landlord:
     landlord.contact_phone = "+26658000000"
     landlord.email = LANDLORD_EMAIL
     landlord.address = "Roma, Lesotho"
+    landlord.is_active = True
+    if not landlord.system_landlord_number:
+        landlord.system_landlord_number = "LL-LND-000001"
     return landlord
 
 

@@ -23,5 +23,8 @@ def dashboard_summary(db: Session = Depends(get_db), user: User = Depends(requir
         unpaid_rent_dues=landlord_scope_filter(db, user, RentDue).filter(RentDue.status.in_([RentDueStatus.unpaid, RentDueStatus.partial])).count(),
         pending_payment_submissions=landlord_scope_filter(db, user, PaymentSubmission).filter(PaymentSubmission.status == PaymentSubmissionStatus.pending).count(),
         published_listings=landlord_scope_filter(db, user, RoomListing).filter(RoomListing.status == ListingStatus.published).count(),
-        pending_applications=db.query(TenantApplication).join(RoomListing, TenantApplication.listing_id == RoomListing.id).filter(RoomListing.id.in_([l.id for l in landlord_scope_filter(db, user, RoomListing).all()]), TenantApplication.status == ApplicationStatus.pending).count(),
+        pending_applications=db.query(TenantApplication).join(RoomListing, TenantApplication.listing_id == RoomListing.id).filter(
+            RoomListing.id.in_([l.id for l in landlord_scope_filter(db, user, RoomListing).all()]),
+            TenantApplication.status.in_([ApplicationStatus.inquiry_pending, ApplicationStatus.form_sent, ApplicationStatus.submitted, ApplicationStatus.pending, ApplicationStatus.under_review, ApplicationStatus.info_requested]),
+        ).count(),
     )

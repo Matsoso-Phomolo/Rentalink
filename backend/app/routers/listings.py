@@ -12,6 +12,8 @@ from app.models import (
     AuditAction,
     ListingPhoto,
     ListingStatus,
+    Landlord,
+    Notification,
     Occupancy,
     OnboardingChecklist,
     RoomListing,
@@ -160,8 +162,8 @@ def assign_application_room(application_id: uuid.UUID, payload: ApplicationAssig
     room = get_room_in_scope(db, user, listing.room_id)
     if listing.property_id != room.property_id or listing.landlord_id != room.landlord_id:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Listing, property, and room linkage is inconsistent")
-    if room.status == RoomStatus.occupied:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Room is already occupied")
+    if room.status != RoomStatus.vacant or listing.status != ListingStatus.published or not listing.is_public:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Room is no longer available.")
     tenant = None
     if application.applicant_user_id:
         tenant = db.query(Tenant).filter(Tenant.user_id == application.applicant_user_id).first()
@@ -175,9 +177,13 @@ def assign_application_room(application_id: uuid.UUID, payload: ApplicationAssig
             full_name=application.full_name,
             phone=application.phone,
             email=application.email,
+            national_id=application.national_id,
+            passport_number=application.passport_number,
             student_number=application.student_number,
+            institution=application.institution,
             occupation=application.occupation,
-            next_of_kin_name=application.emergency_contact,
+            next_of_kin_name=application.emergency_contact_name or application.emergency_contact,
+            next_of_kin_phone=application.emergency_contact_phone,
         )
         db.add(tenant)
         db.flush()
@@ -203,11 +209,17 @@ def assign_application_room(application_id: uuid.UUID, payload: ApplicationAssig
     room.status = RoomStatus.occupied
     listing.status = ListingStatus.rented
     listing.is_public = False
+    application.room_id = listing.room_id
+    application.property_id = listing.property_id
+    application.landlord_id = listing.landlord_id
     application.status = ApplicationStatus.approved
     invitation = None
     if payload.create_invitation_if_no_user and not application.applicant_user_id:
         invitation = TenantInvitation(landlord_id=listing.landlord_id, tenant_application_id=application.id, tenant_id=tenant.id, email=application.email, phone=application.phone, token=str(uuid.uuid4()))
         db.add(invitation)
+    landlord = db.get(Landlord, listing.landlord_id)
+    if landlord:
+        db.add(Notification(user_id=landlord.user_id, title="Room assigned", body=f"{application.full_name} has been assigned to {room.room_number}.", category="applications"))
     log_action(db, AuditAction.create_occupancy, user, listing.landlord_id, "TenantApplication", application.id)
     db.commit()
     return {"tenant_id": tenant.id, "occupancy_id": occupancy.id, "invitation_id": invitation.id if invitation else None}

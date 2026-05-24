@@ -109,6 +109,52 @@ button {
   font-size: 32px;
 }
 
+.auth-shell {
+  width: min(1120px, 100%);
+  display: grid;
+  grid-template-columns: 0.8fr 1.2fr;
+  gap: 18px;
+  padding: 18px;
+}
+
+.auth-copy,
+.auth-card {
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.auth-copy {
+  padding: 36px;
+  display: grid;
+  align-content: start;
+  gap: 22px;
+}
+
+.auth-copy h1 {
+  margin: 0;
+  font-size: 38px;
+  line-height: 1.08;
+  letter-spacing: 0;
+}
+
+.auth-copy p {
+  margin: 0;
+  color: #61706d;
+  line-height: 1.6;
+}
+
+.auth-card {
+  padding: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+.application-form-card {
+  max-height: calc(100vh - 72px);
+  overflow: auto;
+}
+
 label {
   display: grid;
   gap: 8px;
@@ -505,6 +551,13 @@ textarea:focus {
   gap: 16px;
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(0, 1.1fr);
+  gap: 16px;
+  align-items: start;
+}
+
 .landlord-card {
   padding: 22px;
   display: grid;
@@ -750,6 +803,10 @@ th {
   min-width: 150px;
 }
 
+.review-actions.vertical {
+  align-content: start;
+}
+
 .review-actions button {
   min-height: 36px;
   border: 1px solid #ccd7d2;
@@ -774,6 +831,47 @@ th {
 .row-money strong,
 .row-money span {
   display: block;
+}
+
+.section-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.section-heading h2 {
+  margin: 0;
+}
+
+.compact-list {
+  gap: 10px;
+}
+
+.copy-field {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.copy-field button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid #246b61;
+  border-radius: 8px;
+  background: #246b61;
+  color: #ffffff;
+  font-weight: 800;
+}
+
+.mini-card {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid #dce4df;
+  border-radius: 8px;
+  background: #f8faf7;
 }
 
 .status-pill {
@@ -832,6 +930,8 @@ th {
   .metric-grid,
   .listing-grid,
   .landlord-grid,
+  .admin-grid,
+  .auth-shell,
   .listing-detail-layout {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -867,12 +967,18 @@ th {
   .metric-grid,
   .listing-grid,
   .landlord-grid,
+  .admin-grid,
+  .auth-shell,
   .detail-grid,
   .detail-grid.compact,
   .listing-detail-layout,
   .form-grid,
   .application-card {
     grid-template-columns: 1fr;
+  }
+
+  .application-form-card {
+    max-height: none;
   }
 
   .vacant-preview-header,

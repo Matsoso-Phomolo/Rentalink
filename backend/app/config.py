@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     admin_email: str | None = None
     admin_password: str | None = None
     admin_full_name: str = "LineLink Admin"
+    application_token_expire_days: int = 7
     database_url: str = "postgresql+psycopg://linelink:linelink@localhost:5432/linelink"
     secret_key: str = "change-me-in-production"
     algorithm: str = "HS256"

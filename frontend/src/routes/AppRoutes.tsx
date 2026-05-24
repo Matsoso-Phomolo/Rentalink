@@ -3,9 +3,11 @@ import { AppLayout } from "../layouts/AppLayout";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { LoginPage } from "../pages/LoginPage";
 import { PublicRoomFinderPage } from "../pages/public/PublicRoomFinderPage";
+import { ApplicationFormPage } from "../pages/public/ApplicationFormPage";
 import { LandlordDashboardPage } from "../pages/landlord/LandlordDashboardPage";
 import { RoomsPage } from "../pages/landlord/RoomsPage";
 import { ListingsPage } from "../pages/landlord/ListingsPage";
+import { RoomRequestsPage } from "../pages/landlord/RoomRequestsPage";
 import { PaymentSubmissionsPage } from "../pages/landlord/PaymentSubmissionsPage";
 import { SupportTicketsPage } from "../pages/landlord/SupportTicketsPage";
 import { TenantPortalPage } from "../pages/tenant/TenantPortalPage";
@@ -26,6 +28,7 @@ export function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/rooms" element={<PublicRoomFinderPage />} />
+      <Route path="/apply/:token" element={<ApplicationFormPage />} />
       <Route path="/" element={<HomeRedirect />} />
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
@@ -36,6 +39,7 @@ export function AppRoutes() {
             <Route path="/landlord" element={<LandlordDashboardPage />} />
             <Route path="/landlord/rooms" element={<RoomsPage />} />
             <Route path="/landlord/listings" element={<ListingsPage />} />
+            <Route path="/landlord/requests" element={<RoomRequestsPage />} />
             <Route path="/landlord/payments" element={<PaymentSubmissionsPage />} />
             <Route path="/landlord/support" element={<SupportTicketsPage />} />
           </Route>

@@ -7,6 +7,7 @@ from app.models import (
     AllowedTenantType,
     ApplicationStatus,
     InvitationStatus,
+    LandlordRequestStatus,
     ListingStatus,
     PaymentMethod,
     PaymentSubmissionStatus,
@@ -64,6 +65,47 @@ class LandlordRead(ORMModel):
     contact_phone: str | None
     email: EmailStr | None
     address: str | None
+    system_landlord_number: str | None = None
+    is_active: bool = True
+
+
+class LandlordRequestCreate(BaseModel):
+    business_name: str
+    full_name: str
+    email: EmailStr
+    phone: str | None = None
+    address: str | None = None
+    message: str | None = None
+
+
+class LandlordManualCreate(BaseModel):
+    business_name: str
+    full_name: str
+    email: EmailStr
+    phone: str | None = None
+    address: str | None = None
+    password: str = Field(min_length=8)
+
+
+class LandlordRequestDecision(BaseModel):
+    admin_note: str | None = None
+    password: str | None = Field(default=None, min_length=8)
+
+
+class LandlordRequestRead(LandlordRequestCreate, ORMModel):
+    id: uuid.UUID
+    status: LandlordRequestStatus
+    admin_note: str | None
+    landlord_id: uuid.UUID | None
+    approved_by_user_id: uuid.UUID | None
+    approved_at: datetime | None
+    created_at: datetime
+
+
+class LandlordOnboardingResult(BaseModel):
+    request: LandlordRequestRead | None = None
+    landlord: LandlordRead
+    temporary_password: str | None = None
 
 
 class CaretakerCreate(BaseModel):
@@ -283,24 +325,55 @@ class ViewingRequestRead(ViewingRequestCreate, ORMModel):
 
 class TenantApplicationCreate(BaseModel):
     full_name: str
+    gender: str | None = None
     phone: str
+    alternative_phone: str | None = None
     email: EmailStr | None = None
+    national_id: str | None = None
+    passport_number: str | None = None
     tenant_type: TenantType
     student_number: str | None = None
+    institution: str | None = None
     occupation: str | None = None
+    emergency_contact_name: str | None = None
+    emergency_contact_phone: str | None = None
     preferred_move_in_date: date | None = None
     emergency_contact: str | None = None
     document_path: str | None = None
     message: str | None = None
 
 
+class RoomInquiryCreate(BaseModel):
+    full_name: str
+    phone: str
+    email: EmailStr | None = None
+    message: str | None = None
+
+
+class PublicApplicationSubmit(TenantApplicationCreate):
+    pass
+
+
 class TenantApplicationRead(TenantApplicationCreate, ORMModel):
     id: uuid.UUID
     listing_id: uuid.UUID
+    room_id: uuid.UUID | None = None
+    property_id: uuid.UUID | None = None
+    landlord_id: uuid.UUID | None = None
     applicant_user_id: uuid.UUID | None
     status: ApplicationStatus
     landlord_note: str | None
+    application_token: str | None = None
+    token_expires_at: datetime | None = None
+    form_sent_at: datetime | None = None
+    submitted_at: datetime | None = None
     created_at: datetime
+
+
+class ApplicationFormLink(BaseModel):
+    application_id: uuid.UUID
+    application_url: str
+    token_expires_at: datetime
 
 
 class ApplicationDecision(BaseModel):

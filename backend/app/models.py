@@ -89,12 +89,16 @@ class AllowedTenantType(str, enum.Enum):
 
 
 class ApplicationStatus(str, enum.Enum):
+    inquiry_pending = "inquiry_pending"
+    form_sent = "form_sent"
+    submitted = "submitted"
     pending = "pending"
     under_review = "under_review"
     approved = "approved"
     rejected = "rejected"
     withdrawn = "withdrawn"
     info_requested = "info_requested"
+    expired = "expired"
 
 
 class ViewingRequestStatus(str, enum.Enum):
@@ -166,10 +170,35 @@ class Landlord(Base, TimestampMixin):
     contact_phone: Mapped[str | None] = mapped_column(String(40))
     email: Mapped[str | None] = mapped_column(String(255))
     address: Mapped[str | None] = mapped_column(Text)
+    system_landlord_number: Mapped[str | None] = mapped_column(String(40), unique=True, index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
     user: Mapped[User] = relationship(back_populates="landlord_profile")
     properties: Mapped[list["Property"]] = relationship(back_populates="landlord")
     caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="landlord")
+
+
+class LandlordRequestStatus(str, enum.Enum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class LandlordRequest(Base, TimestampMixin):
+    __tablename__ = "landlord_requests"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    business_name: Mapped[str] = mapped_column(String(255))
+    full_name: Mapped[str] = mapped_column(String(255))
+    email: Mapped[str] = mapped_column(String(255), index=True)
+    phone: Mapped[str | None] = mapped_column(String(40))
+    address: Mapped[str | None] = mapped_column(Text)
+    message: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[LandlordRequestStatus] = mapped_column(Enum(LandlordRequestStatus, name="landlord_request_status"), default=LandlordRequestStatus.pending, index=True)
+    admin_note: Mapped[str | None] = mapped_column(Text)
+    landlord_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("landlords.id"), nullable=True, index=True)
+    approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Caretaker(Base, TimestampMixin):
@@ -358,19 +387,33 @@ class TenantApplication(Base, TimestampMixin):
 
     id: Mapped[uuid.UUID] = uuid_pk()
     listing_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("room_listings.id"), index=True)
+    room_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("rooms.id"), nullable=True, index=True)
+    property_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("properties.id"), nullable=True, index=True)
+    landlord_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("landlords.id"), nullable=True, index=True)
     applicant_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     full_name: Mapped[str] = mapped_column(String(255))
+    gender: Mapped[str | None] = mapped_column(String(80))
     phone: Mapped[str] = mapped_column(String(40))
+    alternative_phone: Mapped[str | None] = mapped_column(String(40))
     email: Mapped[str | None] = mapped_column(String(255))
+    national_id: Mapped[str | None] = mapped_column(String(120))
+    passport_number: Mapped[str | None] = mapped_column(String(120))
     tenant_type: Mapped[TenantType] = mapped_column(Enum(TenantType, name="tenant_type"))
     student_number: Mapped[str | None] = mapped_column(String(120))
+    institution: Mapped[str | None] = mapped_column(String(255))
     occupation: Mapped[str | None] = mapped_column(String(255))
+    emergency_contact_name: Mapped[str | None] = mapped_column(String(255))
+    emergency_contact_phone: Mapped[str | None] = mapped_column(String(40))
     preferred_move_in_date: Mapped[date | None] = mapped_column(Date)
     emergency_contact: Mapped[str | None] = mapped_column(String(255))
     document_path: Mapped[str | None] = mapped_column(String(500))
     message: Mapped[str | None] = mapped_column(Text)
     status: Mapped[ApplicationStatus] = mapped_column(Enum(ApplicationStatus, name="application_status"), default=ApplicationStatus.pending, index=True)
     landlord_note: Mapped[str | None] = mapped_column(Text)
+    application_token: Mapped[str | None] = mapped_column(String(160), unique=True, nullable=True, index=True)
+    token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    form_sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    submitted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class TenantInvitation(Base, TimestampMixin):

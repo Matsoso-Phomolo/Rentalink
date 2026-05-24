@@ -52,7 +52,7 @@ export function ListingsPage() {
   }, []);
 
   const pendingCount = useMemo(
-    () => Object.values(applications).flat().filter((application) => ["pending", "under_review", "info_requested"].includes(application.status)).length,
+    () => Object.values(applications).flat().filter((application) => ["inquiry_pending", "form_sent", "submitted", "pending", "under_review", "info_requested"].includes(application.status)).length,
     [applications]
   );
 
@@ -142,9 +142,9 @@ export function ListingsPage() {
                           <span>{application.tenant_type.replace("_", " ")}</span>
                         </div>
                         <strong>{application.full_name}</strong>
-                        <p>{application.phone}{application.email ? ` · ${application.email}` : ""}</p>
+                        <p>{application.phone}{application.email ? ` - ${application.email}` : ""}</p>
                         <p>{application.message}</p>
-                        <small>Emergency contact: {application.emergency_contact ?? "Not provided"}</small>
+                        <small>Emergency contact: {application.emergency_contact_name ?? application.emergency_contact ?? "Not provided"}</small>
                       </div>
                       <div className="review-actions">
                         <button type="button" disabled={busyId === application.id} onClick={() => decide(application, "approve")}>Approve</button>

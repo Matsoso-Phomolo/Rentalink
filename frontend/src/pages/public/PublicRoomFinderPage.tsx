@@ -9,13 +9,6 @@ type ApplicationForm = {
   full_name: string;
   phone: string;
   email: string;
-  tenant_type: "student" | "non_student";
-  student_number: string;
-  institution: string;
-  occupation: string;
-  preferred_move_in_date: string;
-  emergency_contact_name: string;
-  emergency_contact_phone: string;
   message: string;
 };
 
@@ -31,13 +24,6 @@ const emptyApplication: ApplicationForm = {
   full_name: "",
   phone: "",
   email: "",
-  tenant_type: "student",
-  student_number: "",
-  institution: "",
-  occupation: "",
-  preferred_move_in_date: "",
-  emergency_contact_name: "",
-  emergency_contact_phone: "",
   message: ""
 };
 
@@ -111,28 +97,18 @@ export function PublicRoomFinderPage() {
     if (!selectedListing) return;
     setSubmitting("application");
     setFormMessage("");
-    const context = [
-      application.institution ? `Institution: ${application.institution}` : "",
-      application.emergency_contact_phone ? `Emergency contact phone: ${application.emergency_contact_phone}` : "",
-      application.message
-    ].filter(Boolean).join("\n");
     try {
-      await apiFetch(`/public/listings/${selectedListing.id}/applications`, {
+      await apiFetch(`/public/listings/${selectedListing.id}/requests`, {
         method: "POST",
         body: JSON.stringify({
           full_name: application.full_name,
           phone: application.phone,
           email: toNullable(application.email),
-          tenant_type: application.tenant_type,
-          student_number: toNullable(application.student_number),
-          occupation: toNullable(application.occupation),
-          preferred_move_in_date: toNullable(application.preferred_move_in_date),
-          emergency_contact: [application.emergency_contact_name, application.emergency_contact_phone].filter(Boolean).join(" - ") || null,
-          message: toNullable(context)
+          message: toNullable(application.message)
         })
       });
       setApplication(emptyApplication);
-      setFormMessage("Application submitted. The landlord or caretaker will review it before any tenant account is created.");
+      setFormMessage("Application submitted. The landlord/caretaker will review and contact you.");
     } catch (err) {
       setFormMessage(err instanceof Error ? err.message : "Application could not be submitted");
     } finally {
@@ -229,8 +205,8 @@ export function PublicRoomFinderPage() {
                       <StatusPill value="vacant" />
                       <span>{listing.distance_from_nul ?? "Near NUL"}</span>
                     </div>
-                    <h2>{roomLabel(listing)} · {listing.room_size} {listing.room_type}</h2>
-                    <p>{listing.property_name ?? "Line-house"} · {listing.location_area}</p>
+                    <h2>{roomLabel(listing)} - {listing.room_size} {listing.room_type}</h2>
+                    <p>{listing.property_name ?? "Line-house"} - {listing.location_area}</p>
                   </div>
                   <dl className="detail-grid">
                     <div>
@@ -253,7 +229,7 @@ export function PublicRoomFinderPage() {
                   <footer>
                     <strong>{listing.contact_phone}</strong>
                     <button className="secondary-button" type="button" onClick={() => setSelectedListingId(listing.id)}>
-                      View details and apply
+                      Book / Apply
                     </button>
                   </footer>
                 </article>
@@ -273,9 +249,9 @@ export function PublicRoomFinderPage() {
             </button>
             <div className="card-topline">
               <StatusPill value="vacant" />
-              <span>{selectedListing.property_name ?? "Line-house"} · {selectedListing.location_area}</span>
+              <span>{selectedListing.property_name ?? "Line-house"} - {selectedListing.location_area}</span>
             </div>
-            <h2>{roomLabel(selectedListing)} · {selectedListing.room_size} {selectedListing.room_type}</h2>
+            <h2>{roomLabel(selectedListing)} - {selectedListing.room_size} {selectedListing.room_type}</h2>
             <p>{selectedListing.description}</p>
             <dl className="detail-grid">
               <div>
@@ -306,31 +282,15 @@ export function PublicRoomFinderPage() {
           <form className="panel form-panel" onSubmit={submitApplication}>
             <div>
               <p className="eyebrow">Apply under this listing</p>
-              <h2>Register interest</h2>
-              <p>Your application is attached to this landlord, property, and room listing.</p>
+              <h2>Request this room</h2>
+              <p>Send basic details first. The landlord or caretaker can then send you a secure application form link.</p>
             </div>
             <label>Full name<input required value={application.full_name} onChange={(event) => updateApplication("full_name", event.target.value)} /></label>
             <label>Phone<input required value={application.phone} onChange={(event) => updateApplication("phone", event.target.value)} /></label>
             <label>Email optional<input type="email" value={application.email} onChange={(event) => updateApplication("email", event.target.value)} /></label>
-            <div className="form-grid">
-              <label>Tenant type<select value={application.tenant_type} onChange={(event) => updateApplication("tenant_type", event.target.value)}>
-                <option value="student">Student</option>
-                <option value="non_student">Non-student</option>
-              </select></label>
-              <label>Preferred move-in<input type="date" value={application.preferred_move_in_date} onChange={(event) => updateApplication("preferred_move_in_date", event.target.value)} /></label>
-            </div>
-            <div className="form-grid">
-              <label>Student number<input value={application.student_number} onChange={(event) => updateApplication("student_number", event.target.value)} /></label>
-              <label>Institution<input value={application.institution} onChange={(event) => updateApplication("institution", event.target.value)} /></label>
-            </div>
-            <label>Occupation<input value={application.occupation} onChange={(event) => updateApplication("occupation", event.target.value)} /></label>
-            <div className="form-grid">
-              <label>Emergency contact name<input value={application.emergency_contact_name} onChange={(event) => updateApplication("emergency_contact_name", event.target.value)} /></label>
-              <label>Emergency contact phone<input value={application.emergency_contact_phone} onChange={(event) => updateApplication("emergency_contact_phone", event.target.value)} /></label>
-            </div>
             <label>Message<textarea value={application.message} onChange={(event) => updateApplication("message", event.target.value)} /></label>
             <button className="primary-button" disabled={submitting === "application"} type="submit">
-              {submitting === "application" ? "Submitting..." : "Apply for this room"}
+              {submitting === "application" ? "Submitting..." : "Interested / Request Room"}
             </button>
           </form>
 
