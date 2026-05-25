@@ -65,9 +65,7 @@ export function LoginPage() {
             </p>
           </div>
           <div className="hero-photo-grid">
-            <HeroPhotoCarousel title="Roma Village" folder="villages" filenames={["roma-village.jpg", "village-2.jpg", "village-3.jpg"]} />
-            <HeroPhotoCarousel title="NUL Campus" folder="nul-campus" filenames={["nul-campus.jpg", "campus-2.jpg", "campus-3.jpg"]} />
-            <HeroPhotoCarousel title="Student accommodation" folder="lines" filenames={["roma-accommodation.jpg", "line-2.jpg", "line-3.jpg"]} />
+            <HeroPhotoCarousel />
           </div>
         </div>
         <form className="login-card" onSubmit={handleSubmit}>

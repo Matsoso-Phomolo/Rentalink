@@ -39,6 +39,8 @@ export function AdminDashboardPage() {
   const [requests, setRequests] = useState<LandlordRequest[]>([]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [riskCenter, setRiskCenter] = useState<any>(null);
+  const [reminderLogs, setReminderLogs] = useState<any[]>([]);
   const [manual, setManual] = useState<ManualLandlordForm>(emptyManual);
   const [planForm, setPlanForm] = useState(emptyPlan);
   const [loading, setLoading] = useState(true);
@@ -62,6 +64,12 @@ export function AdminDashboardPage() {
       ]);
       setListings(listingItems);
       setPlans(planItems);
+      const [riskItems, reminderItems] = await Promise.all([
+        apiFetch("/admin/ai-risk-center"),
+        apiFetch("/reminders/mine") as Promise<any[]>
+      ]);
+      setRiskCenter(riskItems);
+      setReminderLogs(reminderItems);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load admin data");
     } finally {
@@ -185,6 +193,24 @@ export function AdminDashboardPage() {
     }
   }
 
+  async function runReminders() {
+    setBusyId("run-reminders");
+    setNotice("");
+    try {
+      const result = await apiFetch("/admin/run-reminders", { method: "POST" }) as {
+        tenant_rent_reminders_generated: number;
+        subscription_reminders_generated: number;
+        skipped_duplicates: number;
+      };
+      setNotice(`Reminders generated: rent ${result.tenant_rent_reminders_generated}, subscriptions ${result.subscription_reminders_generated}, skipped duplicates ${result.skipped_duplicates}.`);
+      await loadData();
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not run reminders");
+    } finally {
+      setBusyId("");
+    }
+  }
+
   return (
     <section className="page-stack">
       <div className="page-header">
@@ -246,6 +272,56 @@ export function AdminDashboardPage() {
                       <button type="button" disabled={busyId === request.id || request.status !== "pending"} onClick={() => decideRequest(request, "approve")}>Approve</button>
                       <button type="button" disabled={busyId === request.id || request.status !== "pending"} onClick={() => decideRequest(request, "reject")}>Reject</button>
                     </div>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="admin-grid">
+            <div className="panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Decision support only</p>
+                  <h2>AI Risk Center</h2>
+                </div>
+              </div>
+              <div className="metric-grid compact-metrics">
+                <Metric label="Pending requests" value={riskCenter?.daily_admin_summary?.new_landlord_requests ?? 0} />
+                <Metric label="Listing checks" value={riskCenter?.daily_admin_summary?.pending_listing_verification ?? 0} />
+                <Metric label="Complaints" value={riskCenter?.daily_admin_summary?.unresolved_complaints ?? 0} />
+                <Metric label="Payment alerts" value={riskCenter?.suspicious_payment_alerts?.length ?? 0} />
+              </div>
+              <div className="list-stack compact-list">
+                {(riskCenter?.landlord_risk_cards ?? []).slice(0, 3).map((card: any) => (
+                  <article className="row-item" key={card.landlord_id}>
+                    <div>
+                      <strong>{card.name ?? "Landlord"}</strong>
+                      <p>{card.system_landlord_number ?? "No landlord number"} - score {card.score}</p>
+                    </div>
+                    <StatusPill value={card.level} />
+                  </article>
+                ))}
+              </div>
+            </div>
+
+            <div className="panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Automation scaffold</p>
+                  <h2>Payment reminders</h2>
+                </div>
+                <button type="button" disabled={busyId === "run-reminders"} onClick={runReminders}>Run reminders</button>
+              </div>
+              <div className="list-stack compact-list">
+                {reminderLogs.length === 0 ? <div className="data-state">No reminder logs yet.</div> : null}
+                {reminderLogs.slice(0, 5).map((log) => (
+                  <article className="row-item" key={log.id}>
+                    <div>
+                      <strong>{String(log.reminder_type).replaceAll("_", " ")}</strong>
+                      <p>{log.message}</p>
+                    </div>
+                    <StatusPill value={log.status} />
                   </article>
                 ))}
               </div>
@@ -331,5 +407,14 @@ export function AdminDashboardPage() {
         </>
       ) : null}
     </section>
+  );
+}
+
+function Metric({ label, value }: { label: string; value: number }) {
+  return (
+    <article className="metric-card">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </article>
   );
 }

@@ -22,6 +22,7 @@ type TenantPortal = {
   payments: Array<{ id: string; amount: number; method: string; transaction_reference: string; status: string; created_at: string }>;
   receipts: PaymentReceipt[];
   leases: LeaseAgreement[];
+  reminder_logs?: Array<{ id: string; reminder_type: string; scheduled_for: string; status: string; message: string }>;
   support_tickets: Array<{ id: string; title: string; category: string; priority?: string; status: string; created_at: string }>;
 };
 
@@ -32,13 +33,19 @@ export function TenantPortalPage() {
   const [notice, setNotice] = useState("");
   const [payingDueId, setPayingDueId] = useState("");
   const [paymentForm, setPaymentForm] = useState({ amount: "", method: "mpesa", payer_phone: "" });
+  const [reminders, setReminders] = useState<TenantPortal["reminder_logs"]>([]);
   const paymentPanelRef = useRef<HTMLFormElement | null>(null);
 
   async function loadPortal() {
     setLoading(true);
     setError("");
     try {
-      setPortal(await apiFetch("/tenant-portal/me") as TenantPortal);
+      const [portalData, reminderData] = await Promise.all([
+        apiFetch("/tenant-portal/me") as Promise<TenantPortal>,
+        apiFetch("/reminders/mine") as Promise<TenantPortal["reminder_logs"]>
+      ]);
+      setPortal(portalData);
+      setReminders(reminderData ?? []);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not load tenant portal");
     } finally {
@@ -121,6 +128,22 @@ export function TenantPortalPage() {
             <Metric label="Student number" value={portal.tenant.student_number ?? "Not set"} />
             <Metric label="Institution" value={portal.tenant.institution ?? "Not set"} />
           </div>
+
+          <section className="panel">
+            <h2>Rent reminders</h2>
+            <div className="list-stack">
+              {(reminders ?? []).length === 0 ? <div className="data-state">Rent reminders and overdue notices will appear here.</div> : null}
+              {(reminders ?? []).slice(0, 4).map((reminder) => (
+                <article className="row-item" key={reminder.id}>
+                  <div>
+                    <strong>{reminder.reminder_type.replaceAll("_", " ")}</strong>
+                    <p>{reminder.message}</p>
+                  </div>
+                  <StatusPill value={reminder.status} />
+                </article>
+              ))}
+            </div>
+          </section>
 
           <section className="panel">
             <h2>Lease agreements</h2>

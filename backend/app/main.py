@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import (
+    admin,
     audit_logs,
     applications,
     caretakers,
@@ -25,6 +26,7 @@ from app.routers import (
     properties,
     public_listings,
     rent_dues,
+    reminders,
     messaging,
     rooms,
     support_tickets,
@@ -56,6 +58,7 @@ def health_check() -> dict[str, str]:
 
 
 app.include_router(users.router)
+app.include_router(admin.router)
 app.include_router(landlords.router)
 app.include_router(caretakers.router)
 app.include_router(categories.router)
@@ -64,6 +67,7 @@ app.include_router(rooms.router)
 app.include_router(tenants.router)
 app.include_router(occupancies.router)
 app.include_router(rent_dues.router)
+app.include_router(reminders.router)
 app.include_router(payments.router)
 app.include_router(payment_submissions.router)
 app.include_router(transfers.router)

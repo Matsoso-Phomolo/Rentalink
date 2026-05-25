@@ -650,6 +650,37 @@ class Notification(Base, TimestampMixin):
     is_read: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
 
 
+class NotificationPreference(Base, TimestampMixin):
+    __tablename__ = "notification_preferences"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), unique=True, index=True)
+    in_app_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    whatsapp_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+    sms_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ReminderLog(Base, TimestampMixin):
+    __tablename__ = "reminder_logs"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    landlord_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("landlords.id"), nullable=True, index=True)
+    tenant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tenants.id"), nullable=True, index=True)
+    property_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("properties.id"), nullable=True, index=True)
+    room_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("rooms.id"), nullable=True, index=True)
+    channel: Mapped[str] = mapped_column(String(40), index=True)
+    reminder_type: Mapped[str] = mapped_column(String(80), index=True)
+    target_id: Mapped[str] = mapped_column(String(80), index=True)
+    scheduled_for: Mapped[date] = mapped_column(Date, index=True)
+    sent_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    status: Mapped[str] = mapped_column(String(40), default="queued", index=True)
+    message: Mapped[str] = mapped_column(Text)
+
+    __table_args__ = (UniqueConstraint("reminder_type", "target_id", "channel", "scheduled_for", name="uq_reminder_target_channel_schedule"),)
+
+
 class RuleVisibility(str, enum.Enum):
     public = "public"
     private = "private"

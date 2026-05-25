@@ -10,6 +10,7 @@ export function LandlordDashboardPage() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [properties, setProperties] = useState<PropertyItem[]>([]);
+  const [reminderLogs, setReminderLogs] = useState<Array<{ id: string; reminder_type: string; status: string; message: string; property_id?: string | null }>>([]);
   const [selectedRooms, setSelectedRooms] = useState<string[]>([]);
   const [pushNote, setPushNote] = useState("");
   const [notice, setNotice] = useState("");
@@ -17,12 +18,13 @@ export function LandlordDashboardPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([apiFetch("/dashboard/summary"), apiFetch("/notifications"), apiFetch("/rooms"), apiFetch("/properties")])
-      .then(([dashboard, notes, roomItems, propertyItems]) => {
+    Promise.all([apiFetch("/dashboard/summary"), apiFetch("/notifications"), apiFetch("/rooms"), apiFetch("/properties"), apiFetch("/reminders/mine")])
+      .then(([dashboard, notes, roomItems, propertyItems, reminderItems]) => {
         setSummary(dashboard);
         setNotifications(notes);
         setRooms(roomItems);
         setProperties(propertyItems);
+        setReminderLogs(reminderItems as typeof reminderLogs);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Could not load dashboard"))
       .finally(() => setLoading(false));
@@ -121,6 +123,27 @@ export function LandlordDashboardPage() {
             </div>
             <button className="primary-button" type="button" onClick={() => pushVacantRooms(false)}>Push selected vacant rooms</button>
           </section>
+          <section className="panel">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Rent operations</p>
+                <h2>Reminder history</h2>
+              </div>
+            </div>
+            <div className="list-stack">
+              {reminderLogs.length === 0 ? <div className="data-state">No rent or subscription reminders have been logged yet.</div> : null}
+              {reminderLogs.slice(0, 5).map((reminder) => (
+                <article key={reminder.id} className="row-item">
+                  <div>
+                    <strong>{reminder.reminder_type.replaceAll("_", " ")}</strong>
+                    <p>{reminder.message}</p>
+                  </div>
+                  <span>{reminder.status}</span>
+                </article>
+              ))}
+            </div>
+          </section>
+
           <section className="panel">
             <h2>Recent notifications</h2>
             <div className="list-stack">
