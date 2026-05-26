@@ -79,14 +79,14 @@ export function LoginPage() {
             <span>LL</span>
             <div>
               <strong>LineLink</strong>
-              <small>Remote line-house management</small>
+              <small>Smart rental management platform</small>
             </div>
           </div>
           <div className="hero-copy">
             <p className="eyebrow">LineLink</p>
-            <h1>Manage line-houses remotely. Find vacant rooms faster.</h1>
+            <h1>Manage rentals remotely. Find vacant rooms faster.</h1>
             <p>
-              A focused platform for Roma landlords, caretakers/Landlord-Assistants, tenants, and room seekers to manage rentals, applications, occupancy, rent, and support without walking from house to house.
+              A focused platform for Roma Landlords, Caretakers/Landlord-Assistants, Tenants, and Room Seekers to manage rentals, applications, occupancy, rent, and support without walking from house to house.
             </p>
           </div>
           <div className="hero-photo-grid">
