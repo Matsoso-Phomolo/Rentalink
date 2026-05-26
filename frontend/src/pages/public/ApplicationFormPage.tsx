@@ -11,7 +11,7 @@ type FullApplicationForm = {
   phone: number;
   alternative_phone: string;
   email: string;
-  national_id: long long int;
+  national_id: number;
   passport_number: string;
   tenant_type: "student" | "non_student";
   student_number: string;
