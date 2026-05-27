@@ -25,17 +25,19 @@ export type AdminSection =
   | "districts";
 
 const districts = [
-  "Quthing",
-  "Mohale's Hoek",
-  "Mafeteng",
-  "Maseru",
-  "Berea",
-  "Leribe",
-  "Botha-Bothe",
-  "Thaba-Tseka",
-  "Mokhotlong",
-  "Qacha's Nek"
+  
+  { name: "Quthing", status: "locked", phase: "Future rollout" },
+  { name: "Mohale's Hoek", status: "locked", phase: "Future rollout" },
+  { name: "Mafeteng", status: "locked", phase: "Future rollout" },
+  { name: "Maseru", status: "active", phase: "Roma village active now" },
+  { name: "Berea", status: "locked", phase: "Future rollout" },
+  { name: "Leribe", status: "locked", phase: "Future rollout" },
+  { name: "Botha-Bothe", status: "locked", phase: "Future rollout" },
+  { name: "Thaba-Tseka", status: "locked", phase: "Future rollout" },
+  { name: "Mokhotlong", status: "locked", phase: "Future rollout" },
+  { name: "Qacha's Nek", status: "locked", phase: "Future rollout" }
 ];
+  
 
 const emptyManual: ManualLandlordForm = {
   business_name: "",
@@ -596,23 +598,40 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                   <p className="eyebrow">National rollout</p>
                   <h2>District access control</h2>
                 </div>
-              </div>
+               </div>
 
-              <p>
-                RentLink is currently active for Roma village only. Next, it will expand to the full Maseru district,
-                then selected districts, and finally all 10 districts of Lesotho.
-              </p>
+               <p>
+                 RentaLink is currently available in Roma village under Maseru district.
+                 Admin will later activate full Maseru district access, then selected
+                 districts, and finally all 10 districts of Lesotho.
+                </p>
 
-              <div className="metric-grid compact-metrics">
-                {districts.map((district) => (
-                  <article className="metric-card" key={district}>
-                    <span>{district}</span>
-                    <strong>{district === "Maseru" ? "Roma active" : "Locked"}</strong>
-                  </article>
-                ))}
+                <div className="metric-grid compact-metrics">
+                   <Metric label="Current area" value={1} />
+                   <Metric label="Active districts" value={1} />
+                   <Metric label="Locked districts" value={9} />
+                   <Metric label="Total districts" value={10} />
+                 </div>
+
+                 <div className="list-stack compact-list">
+                   {districts.map((district) => (
+                     <article className="row-item" key={district.name}>
+                       <div>
+                         <strong>{district.name}</strong>
+                         <p>{district.phase}</p>
+                       </div>
+
+                       <StatusPill value={district.status} />
+                     </article>
+                   ))}
+                </div>
+
+                <div className="data-state">
+                  District activation is currently display-only. Backend-controlled activation
+                  will be added later so Room Finder can show rooms by active district.
+                </div>
               </div>
-            </div>
-          ) : null}
+           ) : null}
 
           {section === "landlords" ? (
             <div className="list-stack">
