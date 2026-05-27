@@ -14,6 +14,7 @@ from app.routers import (
     categories,
     complaints,
     dashboard,
+    districts,
     inspections,
     landlords,
     leases,
@@ -62,6 +63,7 @@ app.include_router(admin.router)
 app.include_router(landlords.router)
 app.include_router(caretakers.router)
 app.include_router(categories.router)
+app.include_router(districts.router)
 app.include_router(properties.router)
 app.include_router(rooms.router)
 app.include_router(tenants.router)
