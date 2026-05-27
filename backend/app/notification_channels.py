@@ -1,76 +1,109 @@
+import requests
+
+from app.config import settings
 from app.models import User
 
 
-import resend
-
-from app.config import settings
-
-
-def send_email(to: str, subject: str, message: str) -> bool:
+def send_email(to_email: str, subject: str, message: str) -> bool:
     """
-    Send email using Resend.
+    Send email using Resend API.
     """
+
+    if not settings.resend_api_key:
+        print("RESEND_API_KEY missing")
+        return False
 
     try:
-        if not settings.resend_api_key:
-            print("RESEND_API_KEY missing")
-            return False
-
-        resend.api_key = settings.resend_api_key
-
-        response = resend.Emails.send(
-            {
+        response = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {settings.resend_api_key}",
+                "Content-Type": "application/json",
+            },
+            json={
                 "from": settings.email_from,
-                "to": [to],
+                "to": [to_email],
                 "subject": subject,
                 "html": f"""
-                <div style="font-family: Arial, sans-serif; line-height:1.6;">
+                <div style="font-family: Arial, sans-serif; padding: 20px;">
                     <h2>LineLink Security</h2>
-
                     <p>{message}</p>
-
-                    <hr />
-
-                    <p style="font-size:12px;color:#666;">
-                        If you did not request this code,
-                        please ignore this email.
-                    </p>
                 </div>
                 """,
-            }
+            },
+            timeout=20,
         )
 
-        print("Email sent:", response)
+        print("EMAIL STATUS:", response.status_code)
+        print("EMAIL RESPONSE:", response.text)
 
-        return True
+        return response.status_code in [200, 201]
 
     except Exception as exc:
-        print("Resend email error:", exc)
+        print("EMAIL ERROR:", str(exc))
         return False
 
 
-def send_whatsapp(to: str, body: str) -> None:
-    # Provider integration point: WhatsApp Business API or local gateway.
-    return None
+def send_sms(phone: str, message: str) -> bool:
+    """
+    Placeholder SMS sender.
+    """
+
+    print(f"SMS to {phone}: {message}")
+    return True
 
 
-def send_sms(to: str, body: str) -> None:
-    # Provider integration point: SMS aggregator.
-    return None
+def send_whatsapp(phone: str, message: str) -> bool:
+    """
+    Placeholder WhatsApp sender.
+    """
+
+    print(f"WhatsApp to {phone}: {message}")
+    return True
 
 
-def send_password_reset(user: User, token: str, channel: str = "email") -> None:
-    message = f"LineLink password reset token: {token}. This token expires in 1 hour."
+def send_password_reset(user: User, token: str, channel: str = "email") -> bool:
+    """
+    Send password reset notification.
+    """
+
+    reset_link = (
+        f"{settings.public_base_url}/#/reset-password?token={token}"
+    )
+
+    message = (
+        "You requested a password reset.<br><br>"
+        f"Reset link:<br>"
+        f"<a href='{reset_link}'>{reset_link}</a><br><br>"
+        "If you did not request this reset, ignore this email."
+    )
+
+    if channel == "sms" and user.phone:
+        return send_sms(user.phone, reset_link)
+
     if channel == "whatsapp" and user.phone:
-        send_whatsapp(user.phone, message)
-    elif channel == "sms" and user.phone:
-        send_sms(user.phone, message)
-    else:
-        send_email(user.email, "LineLink password reset", message)
+        return send_whatsapp(user.phone, reset_link)
+
+    return send_email(
+        user.email,
+        "LineLink Password Reset",
+        message,
+    )
 
 
 def send_login_credentials(user: User, temporary_password: str) -> None:
-    message = f"Your LineLink username is {user.username}. Temporary password: {temporary_password}"
+    
+    message = (
+        f"Your LineLink username is {user.username}. "
+        f"Temporary password: {temporary_password}"
+    )
+
+    send_email(
+        user.email,
+        "LineLink account created",
+        message,
+    )
     send_email(user.email, "LineLink account created", message)
     if user.phone:
         send_sms(user.phone, message)
+        send_whatsapp(user.phone, message)
