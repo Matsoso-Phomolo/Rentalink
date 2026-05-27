@@ -4,19 +4,28 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.auth import require_roles
+from app.auth import get_current_user
 from app.database import get_db
-from app.models import District, User, UserRole
+from app.models import District, User
 from app.schemas import DistrictResponse, DistrictUpdate
 
 router = APIRouter(prefix="/districts", tags=["districts"])
 
 
+def require_admin_user(current_user: User) -> None:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+
+
 @router.get("", response_model=list[DistrictResponse])
 def list_districts(
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.admin)),
+    current_user: User = Depends(get_current_user),
 ) -> list[District]:
+    require_admin_user(current_user)
     return db.query(District).order_by(District.name.asc()).all()
 
 
@@ -37,8 +46,10 @@ def update_district(
     district_id: uuid.UUID,
     payload: DistrictUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_roles(UserRole.admin)),
+    current_user: User = Depends(get_current_user),
 ) -> District:
+    require_admin_user(current_user)
+
     district = db.query(District).filter(District.id == district_id).first()
 
     if not district:
@@ -64,12 +75,6 @@ def update_district(
         else:
             district.rollout_stage = "locked"
             district.activated_at = None
-
-    if "rollout_phase" in update_data:
-        district.rollout_phase = update_data["rollout_phase"]
-
-    if "activation_date" in update_data:
-        district.activation_date = update_data["activation_date"]
 
     db.add(district)
     db.commit()
