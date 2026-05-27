@@ -17,7 +17,7 @@ export function SecurityPage() {
         body: JSON.stringify({ channel, enabled: true })
       });
       await refreshUser();
-      setNotice("Two-factor authentication updated.");
+      setNotice("Two-factor authentication enabled successfully.");
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not update two-factor authentication");
     }
@@ -54,8 +54,17 @@ export function SecurityPage() {
           <option value="sms">SMS OTP scaffold</option>
           <option value="whatsapp">WhatsApp OTP scaffold</option>
         </select></label>
-        <button className="primary-button" type="submit">Enable / update 2FA</button>
-        <button type="button" disabled={user?.role === "admin"} onClick={disable}>Disable 2FA</button>
+
+        
+        {user?.two_factor_en2abled || user?.two_factor_required ? (
+          <button type="button" className="danger-button" onClick={disable}>
+            Disable 2FA
+          </button>
+        ) : (
+         <button className="primary-button" type="submit">
+           Enable 2FA
+         </button>
+        )}
       </form>
     </section>
   );
