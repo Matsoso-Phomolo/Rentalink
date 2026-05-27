@@ -1,9 +1,52 @@
 from app.models import User
 
 
-def send_email(to: str, subject: str, body: str) -> None:
-    # Provider integration point: SendGrid, Resend, SMTP, etc.
-    return None
+import resend
+
+from app.config import settings
+
+
+def send_email(to: str, subject: str, message: str) -> bool:
+    """
+    Send email using Resend.
+    """
+
+    try:
+        if not settings.resend_api_key:
+            print("RESEND_API_KEY missing")
+            return False
+
+        resend.api_key = settings.resend_api_key
+
+        response = resend.Emails.send(
+            {
+                "from": settings.email_from,
+                "to": [to],
+                "subject": subject,
+                "html": f"""
+                <div style="font-family: Arial, sans-serif; line-height:1.6;">
+                    <h2>LineLink Security</h2>
+
+                    <p>{message}</p>
+
+                    <hr />
+
+                    <p style="font-size:12px;color:#666;">
+                        If you did not request this code,
+                        please ignore this email.
+                    </p>
+                </div>
+                """,
+            }
+        )
+
+        print("Email sent:", response)
+
+        return True
+
+    except Exception as exc:
+        print("Resend email error:", exc)
+        return False
 
 
 def send_whatsapp(to: str, body: str) -> None:
