@@ -708,6 +708,45 @@ class DashboardSummary(BaseModel):
     total_tenants: int = 0
 
 
+# =========================================================
+# DISTRICT MANAGEMENT SCHEMAS
+# =========================================================
+
+class DistrictBase(BaseModel):
+    name: str
+    slug: str
+    is_active: bool = False
+    rollout_stage: str = "locked"
+    description: str | None = None
+    activated_at: datetime | None = None
+
+
+class DistrictCreate(DistrictBase):
+    pass
+
+
+class DistrictUpdate(BaseModel):
+    name: str | None = None
+    slug: str | None = None
+    is_active: bool | None = None
+    rollout_stage: str | None = None
+    description: str | None = None
+    activated_at: datetime | None = None
+
+
+class DistrictResponse(DistrictBase, ORMModel):
+    id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+
+
+class DistrictSeedResponse(BaseModel):
+    message: str
+    total_districts: int
+    active_districts: int
+    locked_districts: int
+
+
 class PropertyCategoryCreate(BaseModel):
     name: str
     description: str | None = None
