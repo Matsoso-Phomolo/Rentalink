@@ -40,6 +40,7 @@ const adminLinks = [
   { to: "/admin/reminders", label: "Payment reminders" },
   { to: "/admin/verification", label: "Listing verification" },
   { to: "/admin/plans", label: "Subscription plans" },
+  { to: "/admin/districts", label: "Districts" },
   { to: "/admin/landlords", label: "Landlords" },
   { to: "/rooms", label: "Room finder" },
   { to: "/security", label: "Security" }
@@ -97,6 +98,7 @@ export function AppLayout() {
           <strong>{user?.full_name}</strong>
           <span>{user?.username}</span>
           <span>{user?.email}</span>
+
           <button type="button" onClick={handleLogout}>
             Log out
           </button>
