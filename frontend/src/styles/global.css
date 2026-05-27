@@ -1440,3 +1440,26 @@ th {
     align-items: flex-start;
   }
 }
+
+.status-toggle {
+  border: none;
+  border-radius: 999px;
+  padding: 0.65rem 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.status-toggle.active {
+  background: #dff5e8;
+  color: #166534;
+}
+
+.status-toggle.locked {
+  background: #e5e7eb;
+  color: #475569;
+}
+
+.status-toggle:hover {
+  transform: translateY(-1px);
+}
