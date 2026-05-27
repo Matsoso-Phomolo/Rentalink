@@ -49,7 +49,15 @@ export function AppRoutes() {
           <Route element={<AppLayout />}>
             <Route path="/security" element={<SecurityPage />} />
             <Route element={<ProtectedRoute roles={["admin"]} />}>
-              <Route path="/admin" element={<AdminDashboardPage />} />
+              <Route path="/admin" element={<AdminDashboardPage section="onboarding" />} />
+              <Route path="/admin/requests" element={<AdminDashboardPage section="requests" />} />
+              <Route path="/admin/risk" element={<AdminDashboardPage section="risk" />} />
+              <Route path="/admin/gateway" element={<AdminDashboardPage section="gateway" />} />
+              <Route path="/admin/reminders" element={<AdminDashboardPage section="reminders" />} />
+              <Route path="/admin/verification" element={<AdminDashboardPage section="verification" />} />
+              <Route path="/admin/plans" element={<AdminDashboardPage section="plans" />} />
+              <Route path="/admin/landlords" element={<AdminDashboardPage section="landlords" />} />
+
             </Route>
             <Route element={<ProtectedRoute roles={["landlord", "caretaker", "admin"]} />}>
               <Route path="/landlord" element={<LandlordDashboardPage />} />
