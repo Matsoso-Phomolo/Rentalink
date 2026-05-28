@@ -76,9 +76,9 @@ export function LandlordRequestPage() {
           </div>
           <div>
             <p className="eyebrow">Verified landlords only</p>
-            <h1>Request access to manage your line-house professionally.</h1>
+            <h1>Request access to manage your rental house professionally.</h1>
             <p>
-              RentaLink reviews landlord identity, rent-house ownership, location, and operating details before accounts can publish rooms publicly.
+              RentaLink reviews landlord identity, rental-house ownership, location, and operating details before accounts can publish rooms publicly.
             </p>
           </div>
           <div className="privacy-note">
