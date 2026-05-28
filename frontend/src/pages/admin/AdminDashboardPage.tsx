@@ -13,12 +13,16 @@ type ManualLandlordForm = {
   password: string;
 };
 
-type DistrictStatus = "active" | "locked";
-
 type District = {
+  id: string;
   name: string;
-  status: DistrictStatus;
-  phase: string;
+  slug: string;
+  is_active: boolean;
+  rollout_stage: string;
+  description: string | null;
+  activated_at: string | null;
+  created_at?: string;
+  updated_at?: string | null;
 };
 
 export type AdminSection =
@@ -31,19 +35,6 @@ export type AdminSection =
   | "plans"
   | "landlords"
   | "districts";
-
-const initialDistricts: District[] = [
-  { name: "Quthing", status: "locked", phase: "Future rollout" },
-  { name: "Mohale's Hoek", status: "locked", phase: "Future rollout" },
-  { name: "Mafeteng", status: "locked", phase: "Future rollout" },
-  { name: "Maseru", status: "active", phase: "Roma village active now" },
-  { name: "Berea", status: "locked", phase: "Future rollout" },
-  { name: "Leribe", status: "locked", phase: "Future rollout" },
-  { name: "Botha-Bothe", status: "locked", phase: "Future rollout" },
-  { name: "Thaba-Tseka", status: "locked", phase: "Future rollout" },
-  { name: "Mokhotlong", status: "locked", phase: "Future rollout" },
-  { name: "Qacha's Nek", status: "locked", phase: "Future rollout" }
-];
 
 const emptyManual: ManualLandlordForm = {
   business_name: "",
@@ -74,7 +65,7 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
   const [riskCenter, setRiskCenter] = useState<any>(null);
   const [reminderLogs, setReminderLogs] = useState<any[]>([]);
   const [paymentHealth, setPaymentHealth] = useState<any>(null);
-  const [districts, setDistricts] = useState<District[]>(initialDistricts);
+  const [districts, setDistricts] = useState<District[]>([]);
 
   const [manual, setManual] = useState<ManualLandlordForm>(emptyManual);
   const [planForm, setPlanForm] = useState(emptyPlan);
@@ -89,13 +80,15 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
     setError("");
 
     try {
-      const [landlordItems, requestItems] = await Promise.all([
+      const [landlordItems, requestItems, districtItems] = await Promise.all([
         apiFetch("/landlords") as Promise<Landlord[]>,
-        apiFetch("/landlords/requests") as Promise<LandlordRequest[]>
+        apiFetch("/landlords/requests") as Promise<LandlordRequest[]>,
+        apiFetch("/districts") as Promise<District[]>
       ]);
 
       setLandlords(landlordItems);
       setRequests(requestItems);
+      setDistricts(districtItems);
 
       const [listingItems, planItems] = await Promise.all([
         apiFetch("/listings/mine") as Promise<Listing[]>,
@@ -129,18 +122,29 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
     setManual((current) => ({ ...current, [key]: value }));
   }
 
-  function toggleDistrict(name: string) {
-    setDistricts((current) =>
-      current.map((district) =>
-        district.name === name
-          ? {
-              ...district,
-              status: district.status === "active" ? "locked" : "active",
-              phase: district.status === "active" ? "Future rollout" : "Activated by admin"
-            }
-          : district
-      )
-    );
+  async function toggleDistrict(district: District) {
+    setBusyId(district.id);
+    setNotice("");
+
+    try {
+      const updatedDistrict = (await apiFetch(`/districts/${district.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          is_active: !district.is_active,
+          description: district.is_active ? "Future rollout" : "Activated by admin"
+        })
+      })) as District;
+
+      setDistricts((current) =>
+        current.map((item) => (item.id === updatedDistrict.id ? updatedDistrict : item))
+      );
+
+      setNotice(`${updatedDistrict.name} is now ${updatedDistrict.is_active ? "active" : "locked"}.`);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not update district status");
+    } finally {
+      setBusyId("");
+    }
   }
 
   async function submitManual(event: FormEvent) {
@@ -296,8 +300,8 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
     }
   }
 
-  const activeDistricts = districts.filter((district) => district.status === "active").length;
-  const lockedDistricts = districts.filter((district) => district.status === "locked").length;
+  const activeDistricts = districts.filter((district) => district.is_active).length;
+  const lockedDistricts = districts.filter((district) => !district.is_active).length;
 
   return (
     <section className="page-stack">
@@ -639,26 +643,27 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
 
               <div className="list-stack compact-list">
                 {districts.map((district) => (
-                  <article className="row-item" key={district.name}>
+                  <article className="row-item" key={district.id}>
                     <div>
                       <strong>{district.name}</strong>
-                      <p>{district.phase}</p>
+                      <p>{district.description ?? (district.is_active ? "Activated by admin" : "Future rollout")}</p>
                     </div>
 
                     <button
                       type="button"
-                      className={`status-toggle ${district.status}`}
-                      onClick={() => toggleDistrict(district.name)}
+                      className={`status-toggle ${district.is_active ? "active" : "locked"}`}
+                      disabled={busyId === district.id}
+                      onClick={() => toggleDistrict(district)}
                     >
-                      {district.status === "active" ? "Active" : "Locked"}
+                      {district.is_active ? "Active" : "Locked"}
                     </button>
                   </article>
                 ))}
               </div>
 
               <div className="data-state">
-                District activation is currently frontend-controlled. Backend persistence
-                and Room Finder district filtering will be connected later.
+                District activation is now backed by the production database.
+                Refreshing the page will keep the latest Active/Locked states.
               </div>
             </div>
           ) : null}
