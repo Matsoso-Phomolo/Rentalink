@@ -22,7 +22,8 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    admin = "admin"
+    admin = "admin"  # National Admin
+    district_admin = "district_admin"
     landlord = "landlord"
     caretaker = "caretaker"
     tenant = "tenant"
@@ -253,6 +254,38 @@ class District(Base, TimestampMixin):
     description: Mapped[str | None] = mapped_column(Text)
     activated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
+    areas: Mapped[list["DistrictArea"]] = relationship(back_populates="district")
+    admin_assignments: Mapped[list["DistrictAdminAssignment"]] = relationship(back_populates="district")
+
+
+class DistrictArea(Base, TimestampMixin):
+    __tablename__ = "district_areas"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    district_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("districts.id"), index=True)
+    name: Mapped[str] = mapped_column(String(160), index=True)
+    slug: Mapped[str] = mapped_column(String(160), index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+    description: Mapped[str | None] = mapped_column(Text)
+
+    district: Mapped[District] = relationship(back_populates="areas")
+
+    __table_args__ = (UniqueConstraint("district_id", "slug", name="uq_district_area_district_slug"),)
+
+
+class DistrictAdminAssignment(Base, TimestampMixin):
+    __tablename__ = "district_admin_assignments"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    district_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("districts.id"), index=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
+
+    user: Mapped["User"] = relationship(back_populates="district_admin_assignments")
+    district: Mapped[District] = relationship(back_populates="admin_assignments")
+
+    __table_args__ = (UniqueConstraint("user_id", "district_id", name="uq_district_admin_user_district"),)
+
 
 class User(Base, TimestampMixin):
     __tablename__ = "users"
@@ -273,6 +306,7 @@ class User(Base, TimestampMixin):
     landlord_profile: Mapped["Landlord | None"] = relationship(back_populates="user")
     caretaker_profile: Mapped["Caretaker | None"] = relationship(back_populates="user")
     tenant_profile: Mapped["Tenant | None"] = relationship(back_populates="user")
+    district_admin_assignments: Mapped[list["DistrictAdminAssignment"]] = relationship(back_populates="user")
 
 
 class Landlord(Base, TimestampMixin):
