@@ -409,27 +409,105 @@ class LandlordVerification(Base, TimestampMixin):
     __tablename__ = "landlord_verifications"
 
     id: Mapped[uuid.UUID] = uuid_pk()
-    landlord_request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlord_requests.id"), unique=True, index=True)
+
+    landlord_request_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("landlord_requests.id"),
+        unique=True,
+        index=True,
+    )
+
     national_id: Mapped[str] = mapped_column(String(120))
+
     selfie_path: Mapped[str | None] = mapped_column(String(500))
+
     utility_bill_path: Mapped[str | None] = mapped_column(String(500))
+
     ownership_document_path: Mapped[str | None] = mapped_column(String(500))
-    business_registration_path: Mapped[str | None] = mapped_column(String(500))
+
+    business_registration_path: Mapped[str | None] = mapped_column(
+        String(500)
+    )
+
     additional_notes: Mapped[str | None] = mapped_column(Text)
 
-    ai_recommendation: Mapped[VerificationAIRecommendation | None] = mapped_column(
-        Enum(VerificationAIRecommendation, name="verification_ai_recommendation"),
+    ai_recommendation: Mapped[
+        VerificationAIRecommendation | None
+    ] = mapped_column(
+        Enum(
+            VerificationAIRecommendation,
+            name="verification_ai_recommendation",
+        ),
         nullable=True,
     )
-    ai_confidence_score: Mapped[float | None] = mapped_column(Numeric(5, 2))
+
+    ai_confidence_score: Mapped[float | None] = mapped_column(
+        Numeric(5, 2)
+    )
+
     ai_summary: Mapped[str | None] = mapped_column(Text)
+
     ai_risk_flags: Mapped[str | None] = mapped_column(Text)
 
-    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
-    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True,
+    )
 
-    landlord_request: Mapped[LandlordRequest] = relationship(back_populates="verification")
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
 
+    landlord_request: Mapped["LandlordRequest"] = relationship(
+        back_populates="verification"
+    )
+
+    documents: Mapped[list["LandlordVerificationDocument"]] = relationship(
+        back_populates="verification",
+        cascade="all, delete-orphan",
+    )
+
+
+class LandlordVerificationDocument(Base, TimestampMixin):
+    __tablename__ = "landlord_verification_documents"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+
+    verification_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("landlord_verifications.id"),
+        index=True,
+    )
+
+    document_type: Mapped[str] = mapped_column(
+        String(80),
+        index=True,
+    )
+
+    file_path: Mapped[str] = mapped_column(String(500))
+
+    original_filename: Mapped[str | None] = mapped_column(
+        String(255)
+    )
+
+    content_type: Mapped[str | None] = mapped_column(
+        String(120)
+    )
+
+    ai_checked: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        index=True,
+    )
+
+    ai_result: Mapped[str | None] = mapped_column(Text)
+
+    is_valid: Mapped[bool | None] = mapped_column(
+        Boolean,
+        nullable=True,
+    )
+
+    verification: Mapped["LandlordVerification"] = relationship(
+        back_populates="documents"
+    )
 
 class Caretaker(Base, TimestampMixin):
     __tablename__ = "caretakers"
@@ -1009,6 +1087,34 @@ class LandlordSubscription(Base, TimestampMixin):
     status: Mapped[SubscriptionStatus] = mapped_column(Enum(SubscriptionStatus, name="subscription_status"), default=SubscriptionStatus.active, index=True)
     start_date: Mapped[date] = mapped_column(Date)
     renewal_date: Mapped[date | None] = mapped_column(Date)
+
+
+class PropertySubscription(Base, TimestampMixin):
+    __tablename__ = "property_subscriptions"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("landlords.id"),
+        index=True,
+    )
+    property_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("properties.id"),
+        unique=True,
+        index=True,
+    )
+    total_rooms: Mapped[int] = mapped_column(Integer)
+    monthly_amount: Mapped[float] = mapped_column(Numeric(12, 2))
+    pricing_tier: Mapped[str] = mapped_column(String(80), index=True)
+    status: Mapped[SubscriptionStatus] = mapped_column(
+        Enum(SubscriptionStatus, name="subscription_status"),
+        default=SubscriptionStatus.active,
+        index=True,
+    )
+    start_date: Mapped[date] = mapped_column(Date)
+    renewal_date: Mapped[date | None] = mapped_column(Date)
+
+    property: Mapped["Property"] = relationship()
+    landlord: Mapped["Landlord"] = relationship()
 
 
 class DistrictAdminSubscriptionPermission(Base, TimestampMixin):
