@@ -22,6 +22,15 @@ type District = {
   description: string | null;
 };
 
+type DistrictArea = {
+  id: string;
+  district_id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  description: string | null;
+};
+
 const emptyApplication: ApplicationForm = {
   full_name: "",
   phone: "",
@@ -29,8 +38,6 @@ const emptyApplication: ApplicationForm = {
   preferred_response_method: "whatsapp",
   message: ""
 };
-
-const lineLocations = ["Mafikeng", "Hatabutle", "Thoteng", "Mangopeng", "Ten House", "Liphehleng", "Liphakoeng", "Ha Ntja"];
 
 const responseHelp = {
   phone_call: "The landlord/caretaker will call this number.",
@@ -56,9 +63,13 @@ export function PublicRoomFinderPage() {
 
   const [listings, setListings] = useState<Listing[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
-  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [areas, setAreas] = useState<DistrictArea[]>([]);
+
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
+  const [selectedArea, setSelectedArea] = useState<DistrictArea | null>(null);
 
   const [loading, setLoading] = useState(true);
+  const [loadingAreas, setLoadingAreas] = useState(false);
   const [error, setError] = useState("");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
 
@@ -68,7 +79,6 @@ export function PublicRoomFinderPage() {
   const [minRent, setMinRent] = useState("");
   const [maxRent, setMaxRent] = useState("");
   const [distance, setDistance] = useState("");
-  const [locationFilter, setLocationFilter] = useState("");
   const [mustHaveWater, setMustHaveWater] = useState(false);
   const [mustHaveElectricity, setMustHaveElectricity] = useState(false);
   const [mustBeFurnished, setMustBeFurnished] = useState(false);
@@ -90,7 +100,9 @@ export function PublicRoomFinderPage() {
 
         setListings(listingItems);
         setDistricts(districtItems);
-        setSelectedDistrict("");
+        setSelectedDistrict(null);
+        setSelectedArea(null);
+        setAreas([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load room finder data");
       } finally {
@@ -101,60 +113,91 @@ export function PublicRoomFinderPage() {
     loadRoomFinder();
   }, []);
 
+  async function selectDistrict(district: District) {
+    setSelectedDistrict(district);
+    setSelectedArea(null);
+    setSelectedListingId(null);
+    setQuery("");
+    setType("all");
+    setSize("");
+    setMinRent("");
+    setMaxRent("");
+    setDistance("");
+    setMustHaveWater(false);
+    setMustHaveElectricity(false);
+    setMustBeFurnished(false);
+    setAreas([]);
+    setLoadingAreas(true);
+    setError("");
+
+    try {
+      const areaItems = (await apiFetch(`/district-areas/district/${district.id}/active`)) as DistrictArea[];
+      setAreas(areaItems);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not load areas for this district");
+    } finally {
+      setLoadingAreas(false);
+    }
+  }
+
+  function selectArea(area: DistrictArea) {
+    setSelectedArea(area);
+    setSelectedListingId(null);
+    setQuery("");
+  }
+
+  function backToDistricts() {
+    setSelectedDistrict(null);
+    setSelectedArea(null);
+    setSelectedListingId(null);
+    setAreas([]);
+    setQuery("");
+  }
+
+  function backToAreas() {
+    setSelectedArea(null);
+    setSelectedListingId(null);
+    setQuery("");
+  }
+
   const filteredListings = useMemo(() => {
     const normalized = query.trim().toLowerCase();
     const rentFloor = minRent ? Number(minRent) : null;
     const rentLimit = maxRent ? Number(maxRent) : null;
     const distanceTerm = distance.trim().toLowerCase();
-    const districtTerm = selectedDistrict.trim().toLowerCase();
+    const areaTerm = selectedArea?.name.trim().toLowerCase() ?? "";
 
     return listings.filter((listing) => {
       const text = `${listing.title} ${listing.property_name ?? ""} ${listing.location_area} ${listing.room_size ?? ""} ${listing.description ?? ""}`.toLowerCase();
-      const districtText = `${listing.location_area} ${listing.property_name ?? ""} ${listing.description ?? ""}`.toLowerCase();
+      const areaText = `${listing.location_area} ${listing.property_name ?? ""} ${listing.description ?? ""}`.toLowerCase();
 
-      const matchesDistrict = districtTerm && districtText.includes(districtTerm);
+      const matchesArea = areaTerm && areaText.includes(areaTerm);
       const matchesQuery = !normalized || text.includes(normalized);
       const matchesType = type === "all" || listing.room_type === type;
       const matchesSize = !size || (listing.room_size ?? "").toLowerCase().includes(size.toLowerCase());
       const matchesMinRent = !rentFloor || Number(listing.rent_price) >= rentFloor;
       const matchesRent = !rentLimit || Number(listing.rent_price) <= rentLimit;
       const matchesDistance = !distanceTerm || (listing.distance_from_nul ?? "").toLowerCase().includes(distanceTerm);
-      const matchesLocation = !locationFilter || `${listing.property_name ?? ""} ${listing.location_area}`.toLowerCase().includes(locationFilter.toLowerCase());
       const matchesWater = !mustHaveWater || listing.water_available;
       const matchesElectricity = !mustHaveElectricity || listing.electricity_available;
       const matchesFurnished = !mustBeFurnished || listing.furnished;
 
       return (
-        matchesDistrict &&
+        matchesArea &&
         matchesQuery &&
         matchesType &&
         matchesSize &&
         matchesMinRent &&
         matchesRent &&
         matchesDistance &&
-        matchesLocation &&
         matchesWater &&
         matchesElectricity &&
         matchesFurnished
       );
     });
-  }, [distance, listings, locationFilter, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, selectedDistrict, size, type]);
+  }, [distance, listings, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, selectedArea, size, type]);
 
   const selectedListing = listings.find((listing) => listing.id === selectedListingId) ?? null;
-
-  function selectDistrict(districtName: string) {
-    setSelectedDistrict(districtName);
-    setSelectedListingId(null);
-    setLocationFilter("");
-    setQuery("");
-  }
-
-  function backToDistricts() {
-    setSelectedDistrict("");
-    setSelectedListingId(null);
-    setLocationFilter("");
-    setQuery("");
-  }
 
   function updateApplication(key: keyof ApplicationForm, value: string) {
     setApplication((current) => ({ ...current, [key]: value }));
@@ -162,6 +205,7 @@ export function PublicRoomFinderPage() {
 
   async function submitApplication(event: FormEvent) {
     event.preventDefault();
+
     if (!selectedListing) return;
 
     setSubmitting("application");
@@ -216,22 +260,43 @@ export function PublicRoomFinderPage() {
           <h1>
             {selectedListing
               ? selectedListing.title
-              : selectedDistrict
-                ? `Find vacant rooms in ${selectedDistrict}`
-                : "Select your district"}
+              : selectedArea
+                ? `Find vacant rooms in ${selectedArea.name}`
+                : selectedDistrict
+                  ? `Choose an area in ${selectedDistrict.name}`
+                  : "Select your district"}
           </h1>
+
           <p>
             {selectedListing
               ? "Send a private interest request for this exact room. The landlord or caretaker decides whether to send you the secure full application link."
-              : selectedDistrict
-                ? "Browse published vacant rooms, filter by price and room type, then request a room under the correct landlord, property, and listing."
-                : "Choose an active district first. Locked districts remain hidden until LineLink officially rolls out there."}
+              : selectedArea
+                ? "Browse published vacant rooms inside this area, filter by price and room type, then request a room."
+                : selectedDistrict
+                  ? "Choose an active area inside this district. Locked areas remain hidden until rollout."
+                  : "Choose an active district first. Locked districts remain hidden until LineLink officially rolls out there."}
           </p>
         </div>
 
         <div className="header-stat">
-          <strong>{selectedListing ? money(selectedListing.rent_price) : selectedDistrict ? filteredListings.length : districts.length}</strong>
-          <span>{selectedListing ? "monthly rent" : selectedDistrict ? "vacant rooms" : "active districts"}</span>
+          <strong>
+            {selectedListing
+              ? money(selectedListing.rent_price)
+              : selectedArea
+                ? filteredListings.length
+                : selectedDistrict
+                  ? areas.length
+                  : districts.length}
+          </strong>
+          <span>
+            {selectedListing
+              ? "monthly rent"
+              : selectedArea
+                ? "vacant rooms"
+                : selectedDistrict
+                  ? "active areas"
+                  : "active districts"}
+          </span>
         </div>
       </div>
 
@@ -252,14 +317,14 @@ export function PublicRoomFinderPage() {
             <>
               <div className="amenities compact">
                 {districts.map((district) => (
-                  <button className="chip-button" type="button" key={district.id} onClick={() => selectDistrict(district.name)}>
+                  <button className="chip-button" type="button" key={district.id} onClick={() => selectDistrict(district)}>
                     {district.name}
                   </button>
                 ))}
               </div>
 
               <div className="data-state compact-state">
-                Only districts activated by Admin are shown here. Select a district to view its locations, filters, and rooms.
+                Only districts activated by Admin are shown here. Select a district to view its active areas.
               </div>
             </>
           ) : (
@@ -268,35 +333,65 @@ export function PublicRoomFinderPage() {
         </div>
       ) : null}
 
-      {!loading && !error && !selectedListing && selectedDistrict ? (
+      {!loading && !error && !selectedListing && selectedDistrict && !selectedArea ? (
+        <div className="panel">
+          <div className="section-heading">
+            <div>
+              <p className="eyebrow">Selected district</p>
+              <h2>{selectedDistrict.name}</h2>
+            </div>
+
+            <button className="secondary-button" type="button" onClick={backToDistricts}>
+              Back to districts
+            </button>
+          </div>
+
+          {loadingAreas ? <LoadingState /> : null}
+
+          {!loadingAreas && areas.length > 0 ? (
+            <>
+              <div className="amenities compact">
+                {areas.map((area) => (
+                  <button className="chip-button" type="button" key={area.id} onClick={() => selectArea(area)}>
+                    {area.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="data-state compact-state">
+                Select an area inside {selectedDistrict.name} to view available rooms.
+              </div>
+            </>
+          ) : null}
+
+          {!loadingAreas && areas.length === 0 ? (
+            <div className="data-state">
+              No active areas are available in {selectedDistrict.name} yet.
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {!loading && !error && !selectedListing && selectedDistrict && selectedArea ? (
         <>
           <div className="panel">
             <div className="section-heading">
               <div>
-                <p className="eyebrow">Selected district</p>
-                <h2>{selectedDistrict}</h2>
+                <p className="eyebrow">Selected area</p>
+                <h2>
+                  {selectedDistrict.name} / {selectedArea.name}
+                </h2>
               </div>
-              <button className="secondary-button" type="button" onClick={backToDistricts}>
-                Back to districts
+
+              <button className="secondary-button" type="button" onClick={backToAreas}>
+                Back to areas
               </button>
             </div>
           </div>
 
           <div className="finder-subnav">
-            <div className="amenities compact">
-              <button className="chip-button" type="button" onClick={() => setLocationFilter("")}>
-                All locations
-              </button>
-
-              {lineLocations.map((location) => (
-                <button className="chip-button" type="button" key={location} onClick={() => setLocationFilter(location)}>
-                  {location}
-                </button>
-              ))}
-            </div>
-
             <div className="toolbar wide">
-              <input placeholder="Search area, property, room, or description" value={query} onChange={(event) => setQuery(event.target.value)} />
+              <input placeholder="Search property, room, or description" value={query} onChange={(event) => setQuery(event.target.value)} />
 
               <select value={type} onChange={(event) => setType(event.target.value)}>
                 <option value="all">All room types</option>
@@ -374,7 +469,7 @@ export function PublicRoomFinderPage() {
               ))}
             </div>
           ) : (
-            <div className="data-state">No vacant rooms match this district or filters.</div>
+            <div className="data-state">No vacant rooms match this area or filters.</div>
           )}
         </>
       ) : null}
