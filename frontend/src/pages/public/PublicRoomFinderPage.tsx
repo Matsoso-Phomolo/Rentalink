@@ -39,6 +39,18 @@ const emptyApplication: ApplicationForm = {
   message: ""
 };
 
+const romaVillages = [
+  "Hatabutle",
+  "Mafikeng",
+  "Thoteng",
+  "Ten-House",
+  "Liphehleng",
+  "Liphakoeng",
+  "Ha-Ntja",
+  "Keiting",
+  "Mangopeng"
+];
+
 const responseHelp = {
   phone_call: "The landlord/caretaker will call this number.",
   whatsapp: "A WhatsApp response will be sent to this phone number.",
@@ -67,6 +79,7 @@ export function PublicRoomFinderPage() {
 
   const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
   const [selectedArea, setSelectedArea] = useState<DistrictArea | null>(null);
+  const [selectedVillage, setSelectedVillage] = useState("");
 
   const [loading, setLoading] = useState(true);
   const [loadingAreas, setLoadingAreas] = useState(false);
@@ -102,6 +115,7 @@ export function PublicRoomFinderPage() {
         setDistricts(districtItems);
         setSelectedDistrict(null);
         setSelectedArea(null);
+        setSelectedVillage("");
         setAreas([]);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Could not load room finder data");
@@ -116,6 +130,7 @@ export function PublicRoomFinderPage() {
   async function selectDistrict(district: District) {
     setSelectedDistrict(district);
     setSelectedArea(null);
+    setSelectedVillage("");
     setSelectedListingId(null);
     setQuery("");
     setType("all");
@@ -142,6 +157,7 @@ export function PublicRoomFinderPage() {
 
   function selectArea(area: DistrictArea) {
     setSelectedArea(area);
+    setSelectedVillage("");
     setSelectedListingId(null);
     setQuery("");
   }
@@ -149,6 +165,7 @@ export function PublicRoomFinderPage() {
   function backToDistricts() {
     setSelectedDistrict(null);
     setSelectedArea(null);
+    setSelectedVillage("");
     setSelectedListingId(null);
     setAreas([]);
     setQuery("");
@@ -156,6 +173,7 @@ export function PublicRoomFinderPage() {
 
   function backToAreas() {
     setSelectedArea(null);
+    setSelectedVillage("");
     setSelectedListingId(null);
     setQuery("");
   }
@@ -166,12 +184,14 @@ export function PublicRoomFinderPage() {
     const rentLimit = maxRent ? Number(maxRent) : null;
     const distanceTerm = distance.trim().toLowerCase();
     const areaTerm = selectedArea?.name.trim().toLowerCase() ?? "";
+    const villageTerm = selectedVillage.trim().toLowerCase();
 
     return listings.filter((listing) => {
       const text = `${listing.title} ${listing.property_name ?? ""} ${listing.location_area} ${listing.room_size ?? ""} ${listing.description ?? ""}`.toLowerCase();
       const areaText = `${listing.location_area} ${listing.property_name ?? ""} ${listing.description ?? ""}`.toLowerCase();
 
       const matchesArea = areaTerm && areaText.includes(areaTerm);
+      const matchesVillage = !villageTerm || areaText.includes(villageTerm);
       const matchesQuery = !normalized || text.includes(normalized);
       const matchesType = type === "all" || listing.room_type === type;
       const matchesSize = !size || (listing.room_size ?? "").toLowerCase().includes(size.toLowerCase());
@@ -184,6 +204,7 @@ export function PublicRoomFinderPage() {
 
       return (
         matchesArea &&
+        matchesVillage &&
         matchesQuery &&
         matchesType &&
         matchesSize &&
@@ -195,7 +216,7 @@ export function PublicRoomFinderPage() {
         matchesFurnished
       );
     });
-  }, [distance, listings, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, selectedArea, size, type]);
+  }, [distance, listings, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, selectedArea, selectedVillage, size, type]);
 
   const selectedListing = listings.find((listing) => listing.id === selectedListingId) ?? null;
 
@@ -261,7 +282,7 @@ export function PublicRoomFinderPage() {
             {selectedListing
               ? selectedListing.title
               : selectedArea
-                ? `Find vacant rooms in ${selectedArea.name}`
+                ? `Find vacant rooms in ${selectedArea.name}${selectedVillage ? ` / ${selectedVillage}` : ""}`
                 : selectedDistrict
                   ? `Choose an area in ${selectedDistrict.name}`
                   : "Select your district"}
@@ -271,7 +292,9 @@ export function PublicRoomFinderPage() {
             {selectedListing
               ? "Send a private interest request for this exact room. The landlord or caretaker decides whether to send you the secure full application link."
               : selectedArea
-                ? "Browse published vacant rooms inside this area, filter by price and room type, then request a room."
+                ? selectedArea.name === "Roma"
+                  ? "Choose a Roma village, browse published vacant rooms, filter by price and room type, then request a room."
+                  : "Browse published vacant rooms inside this area, filter by price and room type, then request a room."
                 : selectedDistrict
                   ? "Choose an active area inside this district. Locked areas remain hidden until rollout."
                   : "Choose an active district first. Locked districts remain hidden until LineLink officially rolls out there."}
@@ -380,6 +403,7 @@ export function PublicRoomFinderPage() {
                 <p className="eyebrow">Selected area</p>
                 <h2>
                   {selectedDistrict.name} / {selectedArea.name}
+                  {selectedVillage ? ` / ${selectedVillage}` : ""}
                 </h2>
               </div>
 
@@ -388,6 +412,38 @@ export function PublicRoomFinderPage() {
               </button>
             </div>
           </div>
+
+          {selectedArea.name === "Roma" ? (
+            <div className="panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">Roma villages</p>
+                  <h2>Select village</h2>
+                </div>
+              </div>
+
+              <div className="amenities compact">
+                <button
+                  className={`chip-button ${selectedVillage === "" ? "active" : ""}`}
+                  type="button"
+                  onClick={() => setSelectedVillage("")}
+                >
+                  All villages
+                </button>
+
+                {romaVillages.map((village) => (
+                  <button
+                    key={village}
+                    className={`chip-button ${selectedVillage === village ? "active" : ""}`}
+                    type="button"
+                    onClick={() => setSelectedVillage(village)}
+                  >
+                    {village}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
 
           <div className="finder-subnav">
             <div className="toolbar wide">
