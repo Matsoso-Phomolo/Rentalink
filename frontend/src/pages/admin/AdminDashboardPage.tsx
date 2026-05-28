@@ -25,6 +25,23 @@ type District = {
   updated_at?: string | null;
 };
 
+type DistrictArea = {
+  id: string;
+  district_id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  description: string | null;
+  created_at?: string;
+  updated_at?: string | null;
+};
+
+type AreaForm = {
+  district_id: string;
+  name: string;
+  description: string;
+};
+
 export type AdminSection =
   | "onboarding"
   | "requests"
@@ -53,6 +70,12 @@ const emptyPlan = {
   features: ""
 };
 
+const emptyAreaForm: AreaForm = {
+  district_id: "",
+  name: "",
+  description: ""
+};
+
 function nullable(value: string) {
   return value.trim() ? value.trim() : null;
 }
@@ -66,9 +89,11 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
   const [reminderLogs, setReminderLogs] = useState<any[]>([]);
   const [paymentHealth, setPaymentHealth] = useState<any>(null);
   const [districts, setDistricts] = useState<District[]>([]);
+  const [areas, setAreas] = useState<DistrictArea[]>([]);
 
   const [manual, setManual] = useState<ManualLandlordForm>(emptyManual);
   const [planForm, setPlanForm] = useState(emptyPlan);
+  const [areaForm, setAreaForm] = useState<AreaForm>(emptyAreaForm);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -80,15 +105,21 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
     setError("");
 
     try {
-      const [landlordItems, requestItems, districtItems] = await Promise.all([
+      const [landlordItems, requestItems, districtItems, areaItems] = await Promise.all([
         apiFetch("/landlords") as Promise<Landlord[]>,
         apiFetch("/landlords/requests") as Promise<LandlordRequest[]>,
-        apiFetch("/districts") as Promise<District[]>
+        apiFetch("/districts") as Promise<District[]>,
+        apiFetch("/district-areas") as Promise<DistrictArea[]>
       ]);
 
       setLandlords(landlordItems);
       setRequests(requestItems);
       setDistricts(districtItems);
+      setAreas(areaItems);
+
+      if (!areaForm.district_id && districtItems.length > 0) {
+        setAreaForm((current) => ({ ...current, district_id: districtItems[0].id }));
+      }
 
       const [listingItems, planItems] = await Promise.all([
         apiFetch("/listings/mine") as Promise<Listing[]>,
@@ -122,6 +153,10 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
     setManual((current) => ({ ...current, [key]: value }));
   }
 
+  function updateAreaForm<K extends keyof AreaForm>(key: K, value: AreaForm[K]) {
+    setAreaForm((current) => ({ ...current, [key]: value }));
+  }
+
   async function toggleDistrict(district: District) {
     setBusyId(district.id);
     setNotice("");
@@ -135,13 +170,57 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
         })
       })) as District;
 
-      setDistricts((current) =>
-        current.map((item) => (item.id === updatedDistrict.id ? updatedDistrict : item))
-      );
-
+      setDistricts((current) => current.map((item) => (item.id === updatedDistrict.id ? updatedDistrict : item)));
       setNotice(`${updatedDistrict.name} is now ${updatedDistrict.is_active ? "active" : "locked"}.`);
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not update district status");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function submitArea(event: FormEvent) {
+    event.preventDefault();
+    setBusyId("add-area");
+    setNotice("");
+
+    try {
+      const createdArea = (await apiFetch("/district-areas", {
+        method: "POST",
+        body: JSON.stringify({
+          district_id: areaForm.district_id,
+          name: areaForm.name,
+          description: nullable(areaForm.description),
+          is_active: true
+        })
+      })) as DistrictArea;
+
+      setAreas((current) => [...current, createdArea]);
+      setAreaForm((current) => ({ district_id: current.district_id, name: "", description: "" }));
+      setNotice(`${createdArea.name} area added successfully.`);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not add area");
+    } finally {
+      setBusyId("");
+    }
+  }
+
+  async function toggleArea(area: DistrictArea) {
+    setBusyId(area.id);
+    setNotice("");
+
+    try {
+      const updatedArea = (await apiFetch(`/district-areas/${area.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          is_active: !area.is_active
+        })
+      })) as DistrictArea;
+
+      setAreas((current) => current.map((item) => (item.id === updatedArea.id ? updatedArea : item)));
+      setNotice(`${updatedArea.name} is now ${updatedArea.is_active ? "active" : "locked"}.`);
+    } catch (err) {
+      setNotice(err instanceof Error ? err.message : "Could not update area");
     } finally {
       setBusyId("");
     }
@@ -302,6 +381,8 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
 
   const activeDistricts = districts.filter((district) => district.is_active).length;
   const lockedDistricts = districts.filter((district) => !district.is_active).length;
+  const activeAreas = areas.filter((area) => area.is_active).length;
+  const lockedAreas = areas.filter((area) => !area.is_active).length;
 
   return (
     <section className="page-stack">
@@ -392,7 +473,9 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                       </div>
 
                       <strong>{request.business_name}</strong>
-                      <p>{request.full_name} - {request.phone ?? "No phone"}</p>
+                      <p>
+                        {request.full_name} - {request.phone ?? "No phone"}
+                      </p>
                       <p>{request.message}</p>
                     </div>
 
@@ -432,7 +515,9 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                   <article className="row-item" key={card.landlord_id}>
                     <div>
                       <strong>{card.name ?? "Landlord"}</strong>
-                      <p>{card.system_landlord_number ?? "No landlord number"} - score {card.score}</p>
+                      <p>
+                        {card.system_landlord_number ?? "No landlord number"} - score {card.score}
+                      </p>
                     </div>
 
                     <StatusPill value={card.level} />
@@ -466,11 +551,7 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
 
                 <div>
                   <span>Last webhook</span>
-                  <strong>
-                    {paymentHealth?.last_webhook_received
-                      ? new Date(paymentHealth.last_webhook_received).toLocaleString()
-                      : "None yet"}
-                  </strong>
+                  <strong>{paymentHealth?.last_webhook_received ? new Date(paymentHealth.last_webhook_received).toLocaleString() : "None yet"}</strong>
                 </div>
 
                 <div>
@@ -546,7 +627,9 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                       </div>
 
                       <strong>{listing.title}</strong>
-                      <p>{listing.property_name ?? listing.location_area} - {listing.room_number ?? "Room"}</p>
+                      <p>
+                        {listing.property_name ?? listing.location_area} - {listing.room_number ?? "Room"}
+                      </p>
                     </div>
 
                     <div className="review-actions">
@@ -607,7 +690,9 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                   <article className="row-item" key={plan.id}>
                     <div>
                       <strong>{plan.name}</strong>
-                      <p>M{Number(plan.monthly_price).toLocaleString()} monthly - {plan.max_rooms} rooms</p>
+                      <p>
+                        M{Number(plan.monthly_price).toLocaleString()} monthly - {plan.max_rooms} rooms
+                      </p>
                     </div>
 
                     <button type="button" disabled={busyId === plan.id || !plan.is_active} onClick={() => disablePlan(plan)}>
@@ -629,41 +714,92 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
               </div>
 
               <p>
-                RentaLink is currently available in Roma village under Maseru district.
-                Admin will later activate full Maseru district access, then selected
-                districts, and finally all 10 districts of Lesotho.
+                RentaLink is currently available in Roma village under Maseru district. Admin will later activate full Maseru district access, then selected districts, and finally all 10 districts of Lesotho.
               </p>
 
               <div className="metric-grid compact-metrics">
-                <Metric label="Current area" value={activeDistricts} />
                 <Metric label="Active districts" value={activeDistricts} />
                 <Metric label="Locked districts" value={lockedDistricts} />
-                <Metric label="Total districts" value={districts.length} />
+                <Metric label="Active areas" value={activeAreas} />
+                <Metric label="Locked areas" value={lockedAreas} />
               </div>
 
-              <div className="list-stack compact-list">
-                {districts.map((district) => (
-                  <article className="row-item" key={district.id}>
-                    <div>
-                      <strong>{district.name}</strong>
-                      <p>{district.description ?? (district.is_active ? "Activated by admin" : "Future rollout")}</p>
-                    </div>
+              <form className="panel form-panel" onSubmit={submitArea}>
+                <div>
+                  <p className="eyebrow">District areas</p>
+                  <h2>Add Area</h2>
+                </div>
 
-                    <button
-                      type="button"
-                      className={`status-toggle ${district.is_active ? "active" : "locked"}`}
-                      disabled={busyId === district.id}
-                      onClick={() => toggleDistrict(district)}
-                    >
-                      {district.is_active ? "Active" : "Locked"}
-                    </button>
-                  </article>
-                ))}
+                <label>
+                  Choose District
+                  <select required value={areaForm.district_id} onChange={(event) => updateAreaForm("district_id", event.target.value)}>
+                    {districts.map((district) => (
+                      <option key={district.id} value={district.id}>
+                        {district.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label>
+                  Area name
+                  <input required placeholder="Example: Roma, Ha-Matala, Lithabaneng" value={areaForm.name} onChange={(event) => updateAreaForm("name", event.target.value)} />
+                </label>
+
+                <label>
+                  Description
+                  <textarea placeholder="Optional area description" value={areaForm.description} onChange={(event) => updateAreaForm("description", event.target.value)} />
+                </label>
+
+                <button className="primary-button" type="submit" disabled={busyId === "add-area"}>
+                  {busyId === "add-area" ? "Adding..." : "Add Area"}
+                </button>
+              </form>
+
+              <div className="list-stack compact-list">
+                {districts.map((district) => {
+                  const districtAreas = areas.filter((area) => area.district_id === district.id);
+
+                  return (
+                    <article className="row-item rich" key={district.id}>
+                      <div>
+                        <div className="card-topline">
+                          <StatusPill value={district.is_active ? "active" : "locked"} />
+                          <span>{districtAreas.length} areas</span>
+                        </div>
+
+                        <strong>{district.name}</strong>
+                        <p>{district.description ?? (district.is_active ? "Activated by admin" : "Future rollout")}</p>
+
+                        <div className="amenities compact">
+                          {districtAreas.length === 0 ? <span>No areas yet</span> : null}
+
+                          {districtAreas.map((area) => (
+                            <button
+                              key={area.id}
+                              type="button"
+                              className={`status-toggle ${area.is_active ? "active" : "locked"}`}
+                              disabled={busyId === area.id}
+                              onClick={() => toggleArea(area)}
+                            >
+                              {area.name}: {area.is_active ? "Active" : "Locked"}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="review-actions">
+                        <button type="button" className={`status-toggle ${district.is_active ? "active" : "locked"}`} disabled={busyId === district.id} onClick={() => toggleDistrict(district)}>
+                          {district.is_active ? "Active" : "Locked"}
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
 
               <div className="data-state">
-                District activation is now backed by the production database.
-                Refreshing the page will keep the latest Active/Locked states.
+                Districts and areas are now backed by the production database. Admin controls which districts and areas are available for rollout.
               </div>
             </div>
           ) : null}
@@ -735,7 +871,7 @@ function adminSectionDescription(section: AdminSection) {
     verification: "Verify or reject listings before they become trusted public room records.",
     plans: "Create and manage SaaS subscription plans for landlords.",
     landlords: "View active landlords and disable accounts when necessary.",
-    districts: "Control rollout from Roma village, to Maseru district, then all 10 districts of Lesotho."
+    districts: "Control districts, add areas, and manage rollout availability across Lesotho."
   };
 
   return descriptions[section];
