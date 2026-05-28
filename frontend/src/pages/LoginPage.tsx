@@ -86,7 +86,7 @@ export function LoginPage() {
             <p className="eyebrow">RentaLink</p>
             <h1>Manage rentals remotely. Find vacant rooms faster.</h1>
             <p>
-              A nationwide smart rental platform for landlords, caretakers/landlord-assistants, tenants, and room seekers — now launching in Roma before expanding across Lesotho.            </p>
+              A nationwide smart rental platform for landlords, caretakers, tenants, and room seekers — now launching in Roma before expanding across Lesotho.            </p>
           </div>
           <div className="hero-photo-grid">
             <HeroPhotoCarousel />
