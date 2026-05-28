@@ -42,6 +42,8 @@ type AreaForm = {
   description: string;
 };
 
+type DistrictView = "districts" | "add-area" | "areas";
+
 export type AdminSection =
   | "onboarding"
   | "requests"
@@ -99,6 +101,7 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [busyId, setBusyId] = useState("");
+  const [districtView, setDistrictView] = useState<DistrictView>("districts");
 
   async function loadData() {
     setLoading(true);
@@ -197,6 +200,7 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
 
       setAreas((current) => [...current, createdArea]);
       setAreaForm((current) => ({ district_id: current.district_id, name: "", description: "" }));
+      setDistrictView("areas");
       setNotice(`${createdArea.name} area added successfully.`);
     } catch (err) {
       setNotice(err instanceof Error ? err.message : "Could not add area");
@@ -713,93 +717,141 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
                 </div>
               </div>
 
-              <p>
-                RentaLink is currently available in Roma village under Maseru district. Admin will later activate full Maseru district access, then selected districts, and finally all 10 districts of Lesotho.
-              </p>
-
-              <div className="metric-grid compact-metrics">
-                <Metric label="Active districts" value={activeDistricts} />
-                <Metric label="Locked districts" value={lockedDistricts} />
-                <Metric label="Active areas" value={activeAreas} />
-                <Metric label="Locked areas" value={lockedAreas} />
-              </div>
-
-              <form className="panel form-panel" onSubmit={submitArea}>
-                <div>
-                  <p className="eyebrow">District areas</p>
-                  <h2>Add Area</h2>
-                </div>
-
-                <label>
-                  Choose District
-                  <select required value={areaForm.district_id} onChange={(event) => updateAreaForm("district_id", event.target.value)}>
-                    {districts.map((district) => (
-                      <option key={district.id} value={district.id}>
-                        {district.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label>
-                  Area name
-                  <input required placeholder="Example: Roma, Ha-Matala, Lithabaneng" value={areaForm.name} onChange={(event) => updateAreaForm("name", event.target.value)} />
-                </label>
-
-                <label>
-                  Description
-                  <textarea placeholder="Optional area description" value={areaForm.description} onChange={(event) => updateAreaForm("description", event.target.value)} />
-                </label>
-
-                <button className="primary-button" type="submit" disabled={busyId === "add-area"}>
-                  {busyId === "add-area" ? "Adding..." : "Add Area"}
+              <div className="amenities compact admin-subnav">
+                <button
+                  type="button"
+                  className={`chip-button ${districtView === "districts" ? "active" : ""}`}
+                  onClick={() => setDistrictView("districts")}
+                >
+                  Districts
                 </button>
-              </form>
 
-              <div className="list-stack compact-list">
-                {districts.map((district) => {
-                  const districtAreas = areas.filter((area) => area.district_id === district.id);
+                <button
+                  type="button"
+                  className={`chip-button ${districtView === "add-area" ? "active" : ""}`}
+                  onClick={() => setDistrictView("add-area")}
+                >
+                  Add Area
+                </button>
 
-                  return (
-                    <article className="row-item rich" key={district.id}>
-                      <div>
-                        <div className="card-topline">
-                          <StatusPill value={district.is_active ? "active" : "locked"} />
-                          <span>{districtAreas.length} areas</span>
-                        </div>
-
-                        <strong>{district.name}</strong>
-                        <p>{district.description ?? (district.is_active ? "Activated by admin" : "Future rollout")}</p>
-
-                        <div className="amenities compact">
-                          {districtAreas.length === 0 ? <span>No areas yet</span> : null}
-
-                          {districtAreas.map((area) => (
-                            <button
-                              key={area.id}
-                              type="button"
-                              className={`status-toggle ${area.is_active ? "active" : "locked"}`}
-                              disabled={busyId === area.id}
-                              onClick={() => toggleArea(area)}
-                            >
-                              {area.name}: {area.is_active ? "Active" : "Locked"}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="review-actions">
-                        <button type="button" className={`status-toggle ${district.is_active ? "active" : "locked"}`} disabled={busyId === district.id} onClick={() => toggleDistrict(district)}>
-                          {district.is_active ? "Active" : "Locked"}
-                        </button>
-                      </div>
-                    </article>
-                  );
-                })}
+                <button
+                  type="button"
+                  className={`chip-button ${districtView === "areas" ? "active" : ""}`}
+                  onClick={() => setDistrictView("areas")}
+                >
+                  Areas
+                </button>
               </div>
+
+              {districtView === "districts" ? (
+                <>
+                  <p>
+                    RentaLink is currently available in Roma village under Maseru district. Admin will later activate full Maseru district access, then selected districts, and finally all 10 districts of Lesotho.
+                  </p>
+
+                  <div className="metric-grid compact-metrics">
+                    <Metric label="Active districts" value={activeDistricts} />
+                    <Metric label="Locked districts" value={lockedDistricts} />
+                    <Metric label="Active areas" value={activeAreas} />
+                    <Metric label="Locked areas" value={lockedAreas} />
+                  </div>
+
+                  <div className="list-stack compact-list">
+                    {districts.map((district) => (
+                      <article className="row-item rich" key={district.id}>
+                        <div>
+                          <div className="card-topline">
+                            <StatusPill value={district.is_active ? "active" : "locked"} />
+                          </div>
+
+                          <strong>{district.name}</strong>
+                          <p>{district.description ?? (district.is_active ? "Activated by admin" : "Future rollout")}</p>
+                        </div>
+
+                        <div className="review-actions">
+                          <button type="button" className={`status-toggle ${district.is_active ? "active" : "locked"}`} disabled={busyId === district.id} onClick={() => toggleDistrict(district)}>
+                            {district.is_active ? "Active" : "Locked"}
+                          </button>
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                </>
+              ) : null}
+
+              {districtView === "add-area" ? (
+                <form className="panel form-panel" onSubmit={submitArea}>
+                  <div>
+                    <p className="eyebrow">District areas</p>
+                    <h2>Add Area</h2>
+                  </div>
+
+                  <label>
+                    Choose District
+                    <select required value={areaForm.district_id} onChange={(event) => updateAreaForm("district_id", event.target.value)}>
+                      {districts.map((district) => (
+                        <option key={district.id} value={district.id}>
+                          {district.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    Area name
+                    <input required placeholder="Example: Roma, Ha-Matala, Lithabaneng" value={areaForm.name} onChange={(event) => updateAreaForm("name", event.target.value)} />
+                  </label>
+
+                  <label>
+                    Description
+                    <textarea placeholder="Optional area description" value={areaForm.description} onChange={(event) => updateAreaForm("description", event.target.value)} />
+                  </label>
+
+                  <button className="primary-button" type="submit" disabled={busyId === "add-area"}>
+                    {busyId === "add-area" ? "Adding..." : "Add Area"}
+                  </button>
+                </form>
+              ) : null}
+
+              {districtView === "areas" ? (
+                <div className="list-stack compact-list">
+                  {districts.map((district) => {
+                    const districtAreas = areas.filter((area) => area.district_id === district.id);
+
+                    return (
+                      <article className="row-item rich" key={district.id}>
+                        <div>
+                          <div className="card-topline">
+                            <StatusPill value={district.is_active ? "active" : "locked"} />
+                            <span>{districtAreas.length} areas</span>
+                          </div>
+
+                          <strong>{district.name}</strong>
+
+                          <div className="amenities compact">
+                            {districtAreas.length === 0 ? <span>No areas yet</span> : null}
+
+                            {districtAreas.map((area) => (
+                              <button
+                                key={area.id}
+                                type="button"
+                                className={`status-toggle ${area.is_active ? "active" : "locked"}`}
+                                disabled={busyId === area.id}
+                                onClick={() => toggleArea(area)}
+                              >
+                                {area.name}: {area.is_active ? "Active" : "Locked"}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
 
               <div className="data-state">
-                Districts and areas are now backed by the production database. Admin controls which districts and areas are available for rollout.
+                Districts and areas are backed by the production database. Only the selected district management view is shown here.
               </div>
             </div>
           ) : null}
