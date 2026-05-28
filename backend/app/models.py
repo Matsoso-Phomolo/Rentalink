@@ -22,7 +22,7 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    admin = "admin"  # National Admin
+    admin = "admin"
     district_admin = "district_admin"
     landlord = "landlord"
     caretaker = "caretaker"
@@ -234,6 +234,22 @@ class SubscriptionStatus(str, enum.Enum):
     cancelled = "cancelled"
 
 
+class LandlordRequestStatus(str, enum.Enum):
+    pending = "pending"
+    under_review = "under_review"
+    verification_requested = "verification_requested"
+    verification_submitted = "verification_submitted"
+    ai_reviewed = "ai_reviewed"
+    approved = "approved"
+    rejected = "rejected"
+
+
+class VerificationAIRecommendation(str, enum.Enum):
+    approve = "approve"
+    reject = "reject"
+    manual_review = "manual_review"
+
+
 def uuid_pk() -> Mapped[uuid.UUID]:
     return mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
@@ -326,13 +342,6 @@ class Landlord(Base, TimestampMixin):
     caretakers: Mapped[list["Caretaker"]] = relationship(back_populates="landlord")
 
 
-class LandlordRequestStatus(str, enum.Enum):
-    pending = "pending"
-    under_review = "under_review"
-    approved = "approved"
-    rejected = "rejected"
-
-
 class LandlordRequest(Base, TimestampMixin):
     __tablename__ = "landlord_requests"
 
@@ -343,20 +352,83 @@ class LandlordRequest(Base, TimestampMixin):
     phone: Mapped[str | None] = mapped_column(String(40))
     address: Mapped[str | None] = mapped_column(Text)
     national_id: Mapped[str | None] = mapped_column(String(120))
-    selfie_path: Mapped[str | None] = mapped_column(String(500))
-    ownership_proof_path: Mapped[str | None] = mapped_column(String(500))
-    utility_bill_path: Mapped[str | None] = mapped_column(String(500))
-    ownership_document_path: Mapped[str | None] = mapped_column(String(500))
-    village_location: Mapped[str | None] = mapped_column(String(160))
-    number_of_properties: Mapped[int | None] = mapped_column(Integer)
-    number_of_rooms: Mapped[int | None] = mapped_column(Integer)
     emergency_contact: Mapped[str | None] = mapped_column(String(255))
     message: Mapped[str | None] = mapped_column(Text)
-    status: Mapped[LandlordRequestStatus] = mapped_column(Enum(LandlordRequestStatus, name="landlord_request_status"), default=LandlordRequestStatus.pending, index=True)
+
+    preferred_response_method: Mapped[PreferredResponseMethod] = mapped_column(
+        Enum(PreferredResponseMethod, name="preferred_response_method"),
+        default=PreferredResponseMethod.email,
+        index=True,
+    )
+    response_contact_value: Mapped[str | None] = mapped_column(String(255))
+
+    status: Mapped[LandlordRequestStatus] = mapped_column(
+        Enum(LandlordRequestStatus, name="landlord_request_status"),
+        default=LandlordRequestStatus.pending,
+        index=True,
+    )
+
+    verification_token: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True, index=True)
+    verification_token_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
     admin_note: Mapped[str | None] = mapped_column(Text)
     landlord_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("landlords.id"), nullable=True, index=True)
     approved_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     approved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    properties: Mapped[list["LandlordRequestProperty"]] = relationship(
+        back_populates="landlord_request",
+        cascade="all, delete-orphan",
+    )
+    verification: Mapped["LandlordVerification | None"] = relationship(
+        back_populates="landlord_request",
+        uselist=False,
+    )
+
+
+class LandlordRequestProperty(Base, TimestampMixin):
+    __tablename__ = "landlord_request_properties"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlord_requests.id"), index=True)
+    property_name: Mapped[str] = mapped_column(String(255))
+    district_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("districts.id"), index=True)
+    area_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("district_areas.id"), index=True)
+    village_location: Mapped[str] = mapped_column(String(160))
+    address: Mapped[str | None] = mapped_column(Text)
+    description: Mapped[str | None] = mapped_column(Text)
+    total_rooms: Mapped[int] = mapped_column(Integer)
+    estimated_monthly_rent: Mapped[float | None] = mapped_column(Numeric(12, 2))
+
+    landlord_request: Mapped[LandlordRequest] = relationship(back_populates="properties")
+    district: Mapped["District"] = relationship()
+    area: Mapped["DistrictArea"] = relationship()
+
+
+class LandlordVerification(Base, TimestampMixin):
+    __tablename__ = "landlord_verifications"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    landlord_request_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("landlord_requests.id"), unique=True, index=True)
+    national_id: Mapped[str] = mapped_column(String(120))
+    selfie_path: Mapped[str | None] = mapped_column(String(500))
+    utility_bill_path: Mapped[str | None] = mapped_column(String(500))
+    ownership_document_path: Mapped[str | None] = mapped_column(String(500))
+    business_registration_path: Mapped[str | None] = mapped_column(String(500))
+    additional_notes: Mapped[str | None] = mapped_column(Text)
+
+    ai_recommendation: Mapped[VerificationAIRecommendation | None] = mapped_column(
+        Enum(VerificationAIRecommendation, name="verification_ai_recommendation"),
+        nullable=True,
+    )
+    ai_confidence_score: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    ai_summary: Mapped[str | None] = mapped_column(Text)
+    ai_risk_flags: Mapped[str | None] = mapped_column(Text)
+
+    reviewed_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    landlord_request: Mapped[LandlordRequest] = relationship(back_populates="verification")
 
 
 class Caretaker(Base, TimestampMixin):
@@ -937,6 +1009,24 @@ class LandlordSubscription(Base, TimestampMixin):
     status: Mapped[SubscriptionStatus] = mapped_column(Enum(SubscriptionStatus, name="subscription_status"), default=SubscriptionStatus.active, index=True)
     start_date: Mapped[date] = mapped_column(Date)
     renewal_date: Mapped[date | None] = mapped_column(Date)
+
+
+class DistrictAdminSubscriptionPermission(Base, TimestampMixin):
+    __tablename__ = "district_admin_subscription_permissions"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+    district_admin_user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    district_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("districts.id"), index=True)
+    can_manage_subscriptions: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    granted_by_user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint(
+            "district_admin_user_id",
+            "district_id",
+            name="uq_district_admin_subscription_permission",
+        ),
+    )
 
 
 class AuditLog(Base):
