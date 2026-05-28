@@ -7,10 +7,19 @@ import type { Listing } from "../../types";
 
 type ApplicationForm = {
   full_name: string;
-  phone: number;
+  phone: string;
   email: string;
   preferred_response_method: "phone_call" | "whatsapp" | "email" | "sms";
   message: string;
+};
+
+type District = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+  rollout_stage: string;
+  description: string | null;
 };
 
 const emptyApplication: ApplicationForm = {
@@ -22,6 +31,7 @@ const emptyApplication: ApplicationForm = {
 };
 
 const lineLocations = ["Mafikeng", "Hatabutle", "Thoteng", "Mangopeng", "Ten House", "Liphehleng", "Liphakoeng", "Ha Ntja"];
+
 const responseHelp = {
   phone_call: "The landlord/caretaker will call this number.",
   whatsapp: "A WhatsApp response will be sent to this phone number.",
@@ -44,6 +54,8 @@ function toNullable(value: string) {
 export function PublicRoomFinderPage() {
   const { user, logout } = useAuth();
   const [listings, setListings] = useState<Listing[]>([]);
+  const [districts, setDistricts] = useState<District[]>([]);
+  const [selectedDistrict, setSelectedDistrict] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
@@ -62,10 +74,30 @@ export function PublicRoomFinderPage() {
   const [submitting, setSubmitting] = useState("");
 
   useEffect(() => {
-    apiFetch("/public/listings?verified_only=true")
-      .then(setListings)
-      .catch((err) => setError(err instanceof Error ? err.message : "Could not load listings"))
-      .finally(() => setLoading(false));
+    async function loadRoomFinder() {
+      setLoading(true);
+      setError("");
+
+      try {
+        const [listingItems, districtItems] = await Promise.all([
+          apiFetch("/public/listings?verified_only=true") as Promise<Listing[]>,
+          apiFetch("/districts/active") as Promise<District[]>
+        ]);
+
+        setListings(listingItems);
+        setDistricts(districtItems);
+
+        if (districtItems.length > 0) {
+          setSelectedDistrict(districtItems[0].name);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Could not load room finder data");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadRoomFinder();
   }, []);
 
   const filteredListings = useMemo(() => {
@@ -73,8 +105,12 @@ export function PublicRoomFinderPage() {
     const rentFloor = minRent ? Number(minRent) : null;
     const rentLimit = maxRent ? Number(maxRent) : null;
     const distanceTerm = distance.trim().toLowerCase();
+    const districtTerm = selectedDistrict.trim().toLowerCase();
+
     return listings.filter((listing) => {
       const text = `${listing.title} ${listing.property_name ?? ""} ${listing.location_area} ${listing.room_size ?? ""} ${listing.description ?? ""}`.toLowerCase();
+      const districtText = `${listing.location_area} ${listing.property_name ?? ""} ${listing.description ?? ""}`.toLowerCase();
+
       const matchesQuery = !normalized || text.includes(normalized);
       const matchesType = type === "all" || listing.room_type === type;
       const matchesSize = !size || (listing.room_size ?? "").toLowerCase().includes(size.toLowerCase());
@@ -85,9 +121,23 @@ export function PublicRoomFinderPage() {
       const matchesWater = !mustHaveWater || listing.water_available;
       const matchesElectricity = !mustHaveElectricity || listing.electricity_available;
       const matchesFurnished = !mustBeFurnished || listing.furnished;
-      return matchesQuery && matchesType && matchesSize && matchesMinRent && matchesRent && matchesDistance && matchesLocation && matchesWater && matchesElectricity && matchesFurnished;
+      const matchesDistrict = !districtTerm || districtText.includes(districtTerm);
+
+      return (
+        matchesQuery &&
+        matchesType &&
+        matchesSize &&
+        matchesMinRent &&
+        matchesRent &&
+        matchesDistance &&
+        matchesLocation &&
+        matchesWater &&
+        matchesElectricity &&
+        matchesFurnished &&
+        matchesDistrict
+      );
     });
-  }, [distance, listings, locationFilter, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, size, type]);
+  }, [distance, listings, locationFilter, maxRent, minRent, mustBeFurnished, mustHaveElectricity, mustHaveWater, query, selectedDistrict, size, type]);
 
   const selectedListing = listings.find((listing) => listing.id === selectedListingId) ?? null;
 
@@ -97,9 +147,12 @@ export function PublicRoomFinderPage() {
 
   async function submitApplication(event: FormEvent) {
     event.preventDefault();
+
     if (!selectedListing) return;
+
     setSubmitting("application");
     setFormMessage("");
+
     try {
       await apiFetch(`/public/listings/${selectedListing.id}/requests`, {
         method: "POST",
@@ -111,6 +164,7 @@ export function PublicRoomFinderPage() {
           message: toNullable(application.message)
         })
       });
+
       setApplication(emptyApplication);
       setFormMessage("Your request has been submitted. The landlord/caretaker will respond using your selected contact method.");
     } catch (err) {
@@ -130,21 +184,41 @@ export function PublicRoomFinderPage() {
             <small>Room finder</small>
           </div>
         </div>
+
         <div className="public-actions">
-          {user?.role === "admin" ? <a href="#/admin">Return to Admin Dashboard</a> : <a href="#/login" onClick={() => { if (user) logout(); }}>Leave</a>}
+          {user?.role === "admin" ? (
+            <a href="#/admin">Return to Admin Dashboard</a>
+          ) : (
+            <a
+              href="#/login"
+              onClick={() => {
+                if (user) logout();
+              }}
+            >
+              Leave
+            </a>
+          )}
         </div>
       </div>
 
       <div className="page-header">
         <div>
           <p className="eyebrow">Public room finder</p>
-          <h1>{selectedListing ? selectedListing.title : "Find vacant rooms near Roma and NUL"}</h1>
+          <h1>
+            {selectedListing
+              ? selectedListing.title
+              : selectedDistrict
+                ? `Find vacant rooms in ${selectedDistrict}`
+                : "Select a district to find vacant rooms"}
+          </h1>
+
           <p>
             {selectedListing
               ? "Send a private interest request for this exact room. The landlord or caretaker decides whether to send you the secure full application link."
-              : "Browse published vacant rooms, filter by price and room type, then request a room under the correct landlord, property, and listing."}
+              : "Choose an active district, browse published vacant rooms, filter by price and room type, then request a room under the correct landlord, property, and listing."}
           </p>
         </div>
+
         <div className="header-stat">
           <strong>{selectedListing ? money(selectedListing.rent_price) : filteredListings.length}</strong>
           <span>{selectedListing ? "monthly rent" : "vacant rooms"}</span>
@@ -156,30 +230,86 @@ export function PublicRoomFinderPage() {
 
       {!loading && !error && !selectedListing ? (
         <>
-          <div className="finder-subnav">
-            <div className="amenities compact">
-              <button className="chip-button" type="button" onClick={() => setLocationFilter("")}>All locations</button>
-              {lineLocations.map((location) => (
-                <button className="chip-button" type="button" key={location} onClick={() => setLocationFilter(location)}>{location}</button>
-              ))}
+          {districts.length > 0 ? (
+            <div className="panel">
+              <div className="section-heading">
+                <div>
+                  <p className="eyebrow">District rollout</p>
+                  <h2>Select active district</h2>
+                </div>
+                <StatusPill value={`${districts.length}_active`} />
+              </div>
+
+              <div className="amenities compact">
+                {districts.map((district) => (
+                  <button
+                    className={`chip-button ${selectedDistrict === district.name ? "active" : ""}`}
+                    type="button"
+                    key={district.id}
+                    onClick={() => {
+                      setSelectedDistrict(district.name);
+                      setSelectedListingId(null);
+                    }}
+                  >
+                    {district.name}
+                  </button>
+                ))}
+              </div>
+
+              <div className="data-state compact-state">
+                Only districts activated by Admin are shown here. Locked districts remain hidden until rollout.
+              </div>
             </div>
-            <div className="toolbar wide">
-              <input placeholder="Search area, property, room, or description" value={query} onChange={(event) => setQuery(event.target.value)} />
-              <select value={type} onChange={(event) => setType(event.target.value)}>
-                <option value="all">All room types</option>
-                <option value="single">Single</option>
-                <option value="double">Double</option>
-              </select>
-              <input placeholder="Room size" value={size} onChange={(event) => setSize(event.target.value)} />
-              <input placeholder="Min rent" inputMode="numeric" value={minRent} onChange={(event) => setMinRent(event.target.value)} />
-              <input placeholder="Max rent" inputMode="numeric" value={maxRent} onChange={(event) => setMaxRent(event.target.value)} />
-              <input placeholder="Distance from NUL" value={distance} onChange={(event) => setDistance(event.target.value)} />
-              <label className="inline-check"><input type="checkbox" checked={mustHaveWater} onChange={(event) => setMustHaveWater(event.target.checked)} /> Water</label>
-              <label className="inline-check"><input type="checkbox" checked={mustHaveElectricity} onChange={(event) => setMustHaveElectricity(event.target.checked)} /> Electricity</label>
-              <label className="inline-check"><input type="checkbox" checked={mustBeFurnished} onChange={(event) => setMustBeFurnished(event.target.checked)} /> Furnished</label>
+          ) : (
+            <div className="data-state">
+              No active districts are available yet. Please check again later.
             </div>
-          </div>
-          {filteredListings.length > 0 ? (
+          )}
+
+          {districts.length > 0 ? (
+            <div className="finder-subnav">
+              <div className="amenities compact">
+                <button className="chip-button" type="button" onClick={() => setLocationFilter("")}>
+                  All locations
+                </button>
+
+                {lineLocations.map((location) => (
+                  <button className="chip-button" type="button" key={location} onClick={() => setLocationFilter(location)}>
+                    {location}
+                  </button>
+                ))}
+              </div>
+
+              <div className="toolbar wide">
+                <input placeholder="Search area, property, room, or description" value={query} onChange={(event) => setQuery(event.target.value)} />
+
+                <select value={type} onChange={(event) => setType(event.target.value)}>
+                  <option value="all">All room types</option>
+                  <option value="single">Single</option>
+                  <option value="double">Double</option>
+                </select>
+
+                <input placeholder="Room size" value={size} onChange={(event) => setSize(event.target.value)} />
+                <input placeholder="Min rent" inputMode="numeric" value={minRent} onChange={(event) => setMinRent(event.target.value)} />
+                <input placeholder="Max rent" inputMode="numeric" value={maxRent} onChange={(event) => setMaxRent(event.target.value)} />
+                <input placeholder="Distance from NUL" value={distance} onChange={(event) => setDistance(event.target.value)} />
+
+                <label className="inline-check">
+                  <input type="checkbox" checked={mustHaveWater} onChange={(event) => setMustHaveWater(event.target.checked)} /> Water
+                </label>
+
+                <label className="inline-check">
+                  <input type="checkbox" checked={mustHaveElectricity} onChange={(event) => setMustHaveElectricity(event.target.checked)} /> Electricity
+                </label>
+
+                <label className="inline-check">
+                  <input type="checkbox" checked={mustBeFurnished} onChange={(event) => setMustBeFurnished(event.target.checked)} /> Furnished
+                </label>
+              </div>
+            </div>
+          ) : null}
+
+          {districts.length > 0 && filteredListings.length > 0 ? (
             <div className="listing-grid">
               {filteredListings.map((listing) => (
                 <article className="listing-card" key={listing.id}>
@@ -190,33 +320,45 @@ export function PublicRoomFinderPage() {
                       {listing.verification_status === "verified" || listing.is_verified ? <StatusPill value="verified" /> : null}
                       <span>{listing.distance_from_nul ?? "Near NUL"}</span>
                     </div>
-                    <h2>{roomLabel(listing)} - {listing.room_size} {listing.room_type}</h2>
-                    <p>{listing.property_name ?? "Line-house"} - {listing.location_area}</p>
+
+                    <h2>
+                      {roomLabel(listing)} - {listing.room_size} {listing.room_type}
+                    </h2>
+
+                    <p>
+                      {listing.property_name ?? "Line-house"} - {listing.location_area}
+                    </p>
                   </div>
+
                   <div className="room-photo-strip">
                     <div className="room-photo-frame">
                       <span>{roomLabel(listing)}</span>
                       <strong>{money(listing.rent_price)}</strong>
                     </div>
                   </div>
+
                   <dl className="detail-grid">
                     <div>
                       <dt>Rent</dt>
                       <dd>{money(listing.rent_price)}</dd>
                     </div>
+
                     <div>
                       <dt>Deposit</dt>
                       <dd>{money(listing.deposit_amount)}</dd>
                     </div>
+
                     <div>
                       <dt>Tenant</dt>
                       <dd>{listing.allowed_tenant_type.replace("_", " ")}</dd>
                     </div>
+
                     <div>
                       <dt>Area</dt>
                       <dd>{listing.location_area}</dd>
                     </div>
                   </dl>
+
                   <div className="amenities compact">
                     {listing.water_available ? <span>Water</span> : null}
                     {listing.electricity_available ? <span>Electricity</span> : null}
@@ -224,10 +366,12 @@ export function PublicRoomFinderPage() {
                     {listing.furnished ? <span>Furnished</span> : null}
                     {listing.parking_available ? <span>Parking</span> : null}
                   </div>
+
                   <footer>
                     <strong>{listing.contact_phone ?? "Contact after request"}</strong>
                     {listing.contact_phone ? <a className="text-button" href={`tel:${listing.contact_phone}`}>Call</a> : null}
                     {listing.contact_phone ? <a className="text-button" href={`https://wa.me/${listing.contact_phone.replace(/\D/g, "")}`} target="_blank" rel="noreferrer">WhatsApp</a> : null}
+
                     <button className="secondary-button" type="button" onClick={() => setSelectedListingId(listing.id)}>
                       Interested / Request Room
                     </button>
@@ -235,44 +379,63 @@ export function PublicRoomFinderPage() {
                 </article>
               ))}
             </div>
-          ) : (
-            <div className="data-state">No vacant rooms match those filters.</div>
-          )}
+          ) : null}
+
+          {districts.length > 0 && filteredListings.length === 0 ? (
+            <div className="data-state">No vacant rooms match this district or filters.</div>
+          ) : null}
         </>
       ) : null}
 
       {selectedListing ? (
         <div className="listing-detail-layout">
           <article className="panel listing-detail-card">
-            <button className="text-button" type="button" onClick={() => { setSelectedListingId(null); setFormMessage(""); }}>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setSelectedListingId(null);
+                setFormMessage("");
+              }}
+            >
               Back to all rooms
             </button>
+
             <div className="card-topline">
               <StatusPill value="vacant" />
               <StatusPill value="available_now" />
               {selectedListing.verification_status === "verified" || selectedListing.is_verified ? <StatusPill value="verified" /> : null}
               <span>{selectedListing.property_name ?? "Line-house"} - {selectedListing.location_area}</span>
             </div>
-            <h2>{roomLabel(selectedListing)} - {selectedListing.room_size} {selectedListing.room_type}</h2>
+
+            <h2>
+              {roomLabel(selectedListing)} - {selectedListing.room_size} {selectedListing.room_type}
+            </h2>
+
             <p>{selectedListing.description}</p>
+
             <dl className="detail-grid">
               <div>
                 <dt>Monthly rent</dt>
                 <dd>{money(selectedListing.rent_price)}</dd>
               </div>
+
               <div>
                 <dt>Deposit</dt>
                 <dd>{money(selectedListing.deposit_amount)}</dd>
               </div>
+
               <div>
                 <dt>Distance</dt>
                 <dd>{selectedListing.distance_from_nul ?? "Ask landlord"}</dd>
               </div>
+
               <div>
                 <dt>Contact</dt>
                 <dd>{selectedListing.contact_phone ?? "Provided after review"}</dd>
               </div>
             </dl>
+
             <div className="amenities">
               {selectedListing.water_available ? <span>Water available</span> : null}
               {selectedListing.electricity_available ? <span>Electricity available</span> : null}
@@ -292,20 +455,43 @@ export function PublicRoomFinderPage() {
               <p>Send basic details first. The landlord or caretaker can then send you a secure application form link.</p>
               <p className="privacy-note">Your information is private and only visible to the landlord/caretaker of this listing.</p>
             </div>
-            <label>Full name<input required value={application.full_name} onChange={(event) => updateApplication("full_name", event.target.value)} /></label>
-            <label>Phone<input required value={application.phone} onChange={(event) => updateApplication("phone", event.target.value)} /></label>
-            <label>Email {application.preferred_response_method === "email" ? "" : "optional"}<input required={application.preferred_response_method === "email"} type="email" value={application.email} onChange={(event) => updateApplication("email", event.target.value)} /></label>
-            <label>Preferred response method<select required value={application.preferred_response_method} onChange={(event) => updateApplication("preferred_response_method", event.target.value as ApplicationForm["preferred_response_method"])}>
-              <option value="phone_call">Phone call</option>
-              <option value="whatsapp">WhatsApp</option>
-              <option value="email">Email</option>
-              <option value="sms">SMS</option>
-            </select></label>
+
+            <label>
+              Full name
+              <input required value={application.full_name} onChange={(event) => updateApplication("full_name", event.target.value)} />
+            </label>
+
+            <label>
+              Phone
+              <input required value={application.phone} onChange={(event) => updateApplication("phone", event.target.value)} />
+            </label>
+
+            <label>
+              Email {application.preferred_response_method === "email" ? "" : "optional"}
+              <input required={application.preferred_response_method === "email"} type="email" value={application.email} onChange={(event) => updateApplication("email", event.target.value)} />
+            </label>
+
+            <label>
+              Preferred response method
+              <select required value={application.preferred_response_method} onChange={(event) => updateApplication("preferred_response_method", event.target.value as ApplicationForm["preferred_response_method"])}>
+                <option value="phone_call">Phone call</option>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">Email</option>
+                <option value="sms">SMS</option>
+              </select>
+            </label>
+
             <div className="data-state compact-state">{responseHelp[application.preferred_response_method]}</div>
-            <label>Message<textarea value={application.message} onChange={(event) => updateApplication("message", event.target.value)} /></label>
+
+            <label>
+              Message
+              <textarea value={application.message} onChange={(event) => updateApplication("message", event.target.value)} />
+            </label>
+
             <button className="primary-button" disabled={submitting === "application"} type="submit">
               {submitting === "application" ? "Submitting..." : "Interested / Request Room"}
             </button>
+
             {formMessage ? <div className="data-state">{formMessage}</div> : null}
           </form>
         </div>
