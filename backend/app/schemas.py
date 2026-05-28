@@ -747,6 +747,38 @@ class DistrictSeedResponse(BaseModel):
     locked_districts: int
 
 
+# =========================================================
+# DISTRICT AREA MANAGEMENT SCHEMAS
+# =========================================================
+
+class DistrictAreaBase(BaseModel):
+    district_id: uuid.UUID
+    name: str
+    description: str | None = None
+    is_active: bool = True
+
+
+class DistrictAreaCreate(DistrictAreaBase):
+    pass
+
+
+class DistrictAreaUpdate(BaseModel):
+    name: str | None = None
+    description: str | None = None
+    is_active: bool | None = None
+
+
+class DistrictAreaResponse(ORMModel):
+    id: uuid.UUID
+    district_id: uuid.UUID
+    name: str
+    slug: str
+    is_active: bool
+    description: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class PropertyCategoryCreate(BaseModel):
     name: str
     description: str | None = None
