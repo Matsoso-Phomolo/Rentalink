@@ -59,7 +59,7 @@ def subscription_in_scope(
 def create_plan(
     payload: SubscriptionPlanCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     plan = SubscriptionPlan(**payload.model_dump())
 
@@ -75,7 +75,7 @@ def list_plans(
     db: Session = Depends(get_db),
     _: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
             UserRole.district_admin,
@@ -95,7 +95,7 @@ def update_plan(
     plan_id: uuid.UUID,
     payload: SubscriptionPlanCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     plan = db.get(SubscriptionPlan, plan_id)
 
@@ -118,7 +118,7 @@ def update_plan(
 def delete_plan(
     plan_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     plan = db.get(SubscriptionPlan, plan_id)
 
@@ -139,7 +139,7 @@ def delete_plan(
 def assign_subscription(
     payload: LandlordSubscriptionCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     subscription = LandlordSubscription(**payload.model_dump())
 
@@ -155,7 +155,7 @@ def list_subscriptions(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.district_admin,
             UserRole.landlord,
             UserRole.caretaker,
@@ -175,11 +175,11 @@ def my_subscriptions(
     user: User = Depends(
         require_roles(
             UserRole.landlord,
-            UserRole.admin,
+            UserRole.national_admin,
         )
     ),
 ):
-    if user.role == UserRole.admin:
+    if user.role == UserRole.national_admin:
         return (
             db.query(LandlordSubscription)
             .order_by(LandlordSubscription.created_at.desc())
@@ -203,13 +203,13 @@ def pay_subscription(
     user: User = Depends(
         require_roles(
             UserRole.landlord,
-            UserRole.admin,
+            UserRole.national_admin,
         )
     ),
 ):
     landlord_id = get_actor_landlord_id(db, user)
 
-    if user.role != UserRole.admin and not landlord_id:
+    if user.role != UserRole.national_admin and not landlord_id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No landlord scope available",
@@ -221,7 +221,7 @@ def pay_subscription(
         else None
     )
 
-    if subscription and user.role != UserRole.admin:
+    if subscription and user.role != UserRole.national_admin:
         scoped_subscription = (
             scoped_query(db, user, LandlordSubscription)
             .filter(LandlordSubscription.id == subscription.id)
@@ -251,7 +251,7 @@ def pay_subscription(
 
         target_landlord_id = (
             landlord_id
-            if user.role != UserRole.admin
+            if user.role != UserRole.national_admin
             else None
         )
 
@@ -276,7 +276,7 @@ def pay_subscription(
         db.flush()
 
     if (
-        user.role != UserRole.admin
+        user.role != UserRole.national_admin
         and subscription.landlord_id != landlord_id
     ):
         raise HTTPException(
