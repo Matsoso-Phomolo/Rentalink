@@ -31,7 +31,7 @@ def ensure_area_slug(db: Session, district: District, area_name: str) -> str:
 
 
 def is_national_admin(user: User) -> bool:
-    return user.role == UserRole.admin
+    return user.role == UserRole.national_admin
 
 
 def is_district_admin(user: User) -> bool:
@@ -57,7 +57,7 @@ def user_can_manage_district(db: Session, user: User, district_id: uuid.UUID) ->
 
 
 def get_current_user_placeholder(db: Session) -> User:
-    user = db.query(User).filter(User.role == UserRole.admin).first()
+    user = db.query(User).filter(User.role == UserRole.national_admin).first()
 
     if not user:
         raise HTTPException(
