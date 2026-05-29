@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.dependencies import get_current_user, require_roles
 from app.models import NotificationPreference, ReminderLog, User, UserRole
-from app.ownership import landlord_scope_filter
+from app.ownership import scoped_query
 
 router = APIRouter(prefix="/reminders", tags=["reminders"])
 
@@ -29,22 +29,47 @@ def _serialize_log(log: ReminderLog) -> dict[str, object]:
 
 
 @router.get("/mine")
-def my_reminder_logs(db: Session = Depends(get_db), user: User = Depends(require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker, UserRole.tenant))):
-    if user.role == UserRole.admin:
-        query = db.query(ReminderLog)
-    elif user.role == UserRole.tenant:
+def my_reminder_logs(
+    db: Session = Depends(get_db),
+    user: User = Depends(
+        require_roles(
+            UserRole.admin,
+            UserRole.landlord,
+            UserRole.caretaker,
+            UserRole.tenant,
+        )
+    ),
+):
+    if user.role == UserRole.tenant:
         query = db.query(ReminderLog).filter(ReminderLog.user_id == user.id)
     else:
-        scoped_ids = [item.id for item in landlord_scope_filter(db, user, ReminderLog).limit(1000).all()]
-        query = db.query(ReminderLog).filter(ReminderLog.id.in_(scoped_ids))
-    return [_serialize_log(log) for log in query.order_by(ReminderLog.created_at.desc()).limit(50).all()]
+        query = scoped_query(db, user, ReminderLog)
+
+    return [
+        _serialize_log(log)
+        for log in query.order_by(ReminderLog.created_at.desc()).limit(50).all()
+    ]
 
 
 @router.get("/preferences/me")
-def get_preferences(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    preference = db.query(NotificationPreference).filter(NotificationPreference.user_id == user.id).first()
+def get_preferences(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    preference = (
+        db.query(NotificationPreference)
+        .filter(NotificationPreference.user_id == user.id)
+        .first()
+    )
+
     if not preference:
-        return {"in_app_enabled": True, "email_enabled": True, "whatsapp_enabled": True, "sms_enabled": True}
+        return {
+            "in_app_enabled": True,
+            "email_enabled": True,
+            "whatsapp_enabled": True,
+            "sms_enabled": True,
+        }
+
     return {
         "in_app_enabled": preference.in_app_enabled,
         "email_enabled": preference.email_enabled,
@@ -54,16 +79,33 @@ def get_preferences(db: Session = Depends(get_db), user: User = Depends(get_curr
 
 
 @router.put("/preferences/me")
-def update_preferences(payload: dict[str, bool], db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    preference = db.query(NotificationPreference).filter(NotificationPreference.user_id == user.id).first()
+def update_preferences(
+    payload: dict[str, bool],
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    preference = (
+        db.query(NotificationPreference)
+        .filter(NotificationPreference.user_id == user.id)
+        .first()
+    )
+
     if not preference:
         preference = NotificationPreference(user_id=user.id)
         db.add(preference)
-    for key in ("in_app_enabled", "email_enabled", "whatsapp_enabled", "sms_enabled"):
+
+    for key in (
+        "in_app_enabled",
+        "email_enabled",
+        "whatsapp_enabled",
+        "sms_enabled",
+    ):
         if key in payload:
             setattr(preference, key, bool(payload[key]))
+
     db.commit()
     db.refresh(preference)
+
     return {
         "in_app_enabled": preference.in_app_enabled,
         "email_enabled": preference.email_enabled,
