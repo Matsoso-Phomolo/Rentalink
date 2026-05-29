@@ -32,73 +32,41 @@ const tenantLinks = [
   { to: "/security", label: "Security" },
 ];
 
+const districtAdminLinks = [
+  { to: "/district", label: "District Dashboard" },
+  { to: "/district/landlords", label: "District Landlords" },
+  { to: "/district/requests", label: "District Requests" },
+  { to: "/district/risk", label: "District Risk Center" },
+  { to: "/landlord/properties", label: "Properties" },
+  { to: "/landlord/rooms", label: "Rooms" },
+  { to: "/landlord/tenants", label: "Tenants" },
+  { to: "/landlord/listings", label: "Listings" },
+  { to: "/landlord/leases", label: "Leases" },
+  { to: "/landlord/requests", label: "Room Requests" },
+  { to: "/landlord/payments", label: "Payments" },
+  { to: "/landlord/support", label: "Support" },
+  { to: "/rooms", label: "Room finder" },
+  { to: "/security", label: "Security" },
+];
+
 const adminLinks = [
   { to: "/admin", label: "Landlord onboarding" },
-
-  {
-    to: "/admin/landlord-requests",
-    label: "Landlord Requests",
-  },
-
-  {
-    to: "/admin/landlord-verifications",
-    label: "Verification Reviews",
-  },
-
-  {
-    to: "/admin/requests",
-    label: "Room Requests",
-  },
-
-  {
-    to: "/admin/risk",
-    label: "AI Risk Center",
-  },
-
-  {
-    to: "/admin/gateway",
-    label: "Payment gateway",
-  },
-
-  {
-    to: "/admin/reminders",
-    label: "Payment reminders",
-  },
-
-  {
-    to: "/admin/verification",
-    label: "Listing verification",
-  },
-
-  {
-    to: "/admin/plans",
-    label: "Subscription plans",
-  },
-
-  {
-    to: "/admin/districts",
-    label: "Districts",
-  },
-
-  {
-    to: "/admin/landlords",
-    label: "Landlords",
-  },
-
-  {
-    to: "/rooms",
-    label: "Room finder",
-  },
-
-  {
-    to: "/security",
-    label: "Security",
-  },
+  { to: "/admin/landlord-requests", label: "Landlord Requests" },
+  { to: "/admin/landlord-verifications", label: "Verification Reviews" },
+  { to: "/admin/requests", label: "Room Requests" },
+  { to: "/admin/risk", label: "AI Risk Center" },
+  { to: "/admin/gateway", label: "Payment gateway" },
+  { to: "/admin/reminders", label: "Payment reminders" },
+  { to: "/admin/verification", label: "Listing verification" },
+  { to: "/admin/plans", label: "Subscription plans" },
+  { to: "/admin/districts", label: "Districts" },
+  { to: "/admin/landlords", label: "Landlords" },
+  { to: "/rooms", label: "Room finder" },
+  { to: "/security", label: "Security" },
 ];
 
 export function AppLayout() {
   const { user, logout } = useAuth();
-
   const navigate = useNavigate();
 
   const links =
@@ -106,6 +74,8 @@ export function AppLayout() {
       ? tenantLinks
       : user?.role === "admin"
       ? adminLinks
+      : user?.role === "district_admin"
+      ? districtAdminLinks
       : user?.role === "caretaker"
       ? caretakerLinks
       : landlordLinks;
@@ -136,6 +106,7 @@ export function AppLayout() {
                 link.to === "/landlord" ||
                 link.to === "/tenant" ||
                 link.to === "/admin" ||
+                link.to === "/district" ||
                 link.to === "/rooms" ||
                 link.to === "/security"
               }
