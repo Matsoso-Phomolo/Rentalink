@@ -154,17 +154,18 @@ def upgrade() -> None:
         ),
 
         sa.Column(
-            "status",
-            sa.Enum(
-                "active",
-                "trialing",
-                "past_due",
-                "cancelled",
-                name="subscription_status",
-            ),
-            nullable=False,
-            server_default="active",
-        ),
+    "status",
+    postgresql.ENUM(
+        "active",
+        "trialing",
+        "past_due",
+        "cancelled",
+        name="subscription_status",
+        create_type=False,
+    ),
+    nullable=False,
+    server_default="active",
+),
 
         sa.Column(
             "start_date",
