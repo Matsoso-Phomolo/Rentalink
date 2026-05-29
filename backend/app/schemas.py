@@ -149,17 +149,14 @@ class LandlordRequestPropertyRead(LandlordRequestPropertyCreate, ORMModel):
 
 
 class LandlordRequestCreate(BaseModel):
-    business_name: str
     full_name: str
     email: EmailStr
     phone: str | None = None
-    address: str | None = None
-    national_id: str | None = None
-    emergency_contact: str | None = None
-    message: str | None = None
+    address: str
     preferred_response_method: PreferredResponseMethod
     response_contact_value: str
-    properties: list[LandlordRequestPropertyCreate] = Field(default_factory=list)
+    emergency_contact: str | None = None
+    message: str | None = None
 
 
 class LandlordManualCreate(BaseModel):
@@ -177,14 +174,13 @@ class LandlordRequestDecision(BaseModel):
 
 
 class LandlordVerificationCreate(BaseModel):
-    preferred_response_method: PreferredResponseMethod
-    response_contact_value: str
     national_id: str
     selfie_path: str | None = None
     utility_bill_path: str | None = None
     ownership_document_path: str | None = None
     business_registration_path: str | None = None
     additional_notes: str | None = None
+    properties: list[LandlordRequestPropertyCreate] = Field(default_factory=list)
 
 
 class LandlordVerificationReview(BaseModel):
