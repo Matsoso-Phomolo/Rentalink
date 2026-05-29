@@ -22,7 +22,7 @@ from app.database import Base
 
 
 class UserRole(str, enum.Enum):
-    admin = "admin"
+    national_admin = "national_admin"
     district_admin = "district_admin"
     landlord = "landlord"
     caretaker = "caretaker"
