@@ -94,7 +94,7 @@ def generate_lease(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -125,7 +125,7 @@ def update_lease(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -148,7 +148,7 @@ def issue_lease(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
