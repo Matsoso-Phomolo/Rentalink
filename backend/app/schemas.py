@@ -129,7 +129,8 @@ class LandlordRequestPropertyCreate(BaseModel):
     double_room_prefix: str = "B"
     starting_room_number: int = 101
 
-    estimated_monthly_rent: float | None = None
+    single_room_rent: float | None = None
+    double_room_rent: float | None = None
 
     @model_validator(mode="after")
     def validate_room_counts(self):
