@@ -1,3 +1,4 @@
+```python
 """add property subscriptions and verification documents
 
 Revision ID: 20260529_0015
@@ -16,7 +17,7 @@ branch_labels = None
 depends_on = None
 
 
-def upgrade():
+def upgrade() -> None:
     op.create_table(
         "landlord_verification_documents",
 
@@ -107,6 +108,8 @@ def upgrade():
         "landlord_verification_documents",
         ["ai_checked"],
     )
+
+    # --------------------------------------------------------
 
     op.create_table(
         "property_subscriptions",
@@ -214,7 +217,7 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
     op.drop_index(
         "ix_property_subscriptions_status",
         table_name="property_subscriptions",
@@ -236,6 +239,8 @@ def downgrade():
     )
 
     op.drop_table("property_subscriptions")
+
+    # --------------------------------------------------------
 
     op.drop_index(
         "ix_landlord_verification_documents_ai_checked",
