@@ -9,7 +9,7 @@ import "./styles/global.css";
 const rootElement = document.getElementById("root");
 
 if (!rootElement) {
-  throw new Error("LineLink root element was not found.");
+  throw new Error("Rentalink root element was not found.");
 }
 
 try {
@@ -27,12 +27,13 @@ try {
     </AppErrorBoundary>
   );
 } catch (error) {
-  console.error("LineLink failed to start", error);
+  console.error("Rentalink failed to start", error);
+
   rootElement.innerHTML = `
     <main class="center-page">
       <section class="auth-card">
-        <p class="eyebrow">LineLink</p>
-        <h1>LineLink could not start</h1>
+        <p class="eyebrow">Rentalink</p>
+        <h1>Rentalink could not start</h1>
         <p>Please refresh the page. If this continues, check browser storage permissions or contact support.</p>
       </section>
     </main>
