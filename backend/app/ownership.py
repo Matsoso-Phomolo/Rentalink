@@ -12,7 +12,11 @@ from app.dependencies import (
 from app.models import Property, Room, Tenant, User, UserRole
 
 
-def assert_district_access(db: Session, user: User, district_id: uuid.UUID | None) -> None:
+def assert_district_access(
+    db: Session,
+    user: User,
+    district_id: uuid.UUID | None,
+) -> None:
     if is_national_admin(user):
         return
 
@@ -39,7 +43,11 @@ def assert_district_access(db: Session, user: User, district_id: uuid.UUID | Non
     )
 
 
-def scoped_query(db: Session, user: User, model):
+def scoped_query(
+    db: Session,
+    user: User,
+    model,
+):
     if is_national_admin(user):
         return db.query(model)
 
@@ -53,7 +61,9 @@ def scoped_query(db: Session, user: User, model):
             )
 
         if hasattr(model, "district_id"):
-            return db.query(model).filter(model.district_id.in_(district_ids))
+            return db.query(model).filter(
+                model.district_id.in_(district_ids)
+            )
 
         if hasattr(model, "property_id"):
             return (
@@ -73,7 +83,10 @@ def scoped_query(db: Session, user: User, model):
         if hasattr(model, "landlord_id"):
             return (
                 db.query(model)
-                .join(Property, Property.landlord_id == model.landlord_id)
+                .join(
+                    Property,
+                    Property.landlord_id == model.landlord_id,
+                )
                 .filter(Property.district_id.in_(district_ids))
                 .distinct()
             )
@@ -92,7 +105,23 @@ def scoped_query(db: Session, user: User, model):
         )
 
     if hasattr(model, "landlord_id"):
-        return db.query(model).filter(model.landlord_id == landlord_id)
+        return db.query(model).filter(
+            model.landlord_id == landlord_id
+        )
+
+    if hasattr(model, "property_id"):
+        return (
+            db.query(model)
+            .join(Property, Property.id == model.property_id)
+            .filter(Property.landlord_id == landlord_id)
+        )
+
+    if hasattr(model, "room_id"):
+        return (
+            db.query(model)
+            .join(Room, Room.id == model.room_id)
+            .filter(Room.landlord_id == landlord_id)
+        )
 
     raise HTTPException(
         status_code=status.HTTP_403_FORBIDDEN,
@@ -100,16 +129,36 @@ def scoped_query(db: Session, user: User, model):
     )
 
 
-def landlord_scope_filter(db: Session, user: User, model):
+def landlord_scope_filter(
+    db: Session,
+    user: User,
+    model,
+):
     return scoped_query(db, user, model)
 
 
-def assert_landlord_access(db: Session, user: User, landlord_id: uuid.UUID) -> None:
+def assert_landlord_access(
+    db: Session,
+    user: User,
+    landlord_id: uuid.UUID | None,
+) -> None:
     if is_national_admin(user):
         return
 
+    if not landlord_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Landlord scope is required",
+        )
+
     if is_district_admin(user):
         district_ids = get_district_admin_district_ids(db, user)
+
+        if not district_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No district scope assigned",
+            )
 
         landlord_property = (
             db.query(Property)
@@ -137,7 +186,11 @@ def assert_landlord_access(db: Session, user: User, landlord_id: uuid.UUID) -> N
         )
 
 
-def get_property_in_scope(db: Session, user: User, property_id: uuid.UUID) -> Property:
+def get_property_in_scope(
+    db: Session,
+    user: User,
+    property_id: uuid.UUID,
+) -> Property:
     prop = db.get(Property, property_id)
 
     if not prop:
@@ -154,10 +207,15 @@ def get_property_in_scope(db: Session, user: User, property_id: uuid.UUID) -> Pr
         return prop
 
     assert_landlord_access(db, user, prop.landlord_id)
+
     return prop
 
 
-def get_room_in_scope(db: Session, user: User, room_id: uuid.UUID) -> Room:
+def get_room_in_scope(
+    db: Session,
+    user: User,
+    room_id: uuid.UUID,
+) -> Room:
     room = db.get(Room, room_id)
 
     if not room:
@@ -179,13 +237,19 @@ def get_room_in_scope(db: Session, user: User, room_id: uuid.UUID) -> Room:
             )
 
         assert_district_access(db, user, prop.district_id)
+
         return room
 
     assert_landlord_access(db, user, room.landlord_id)
+
     return room
 
 
-def get_tenant_in_scope(db: Session, user: User, tenant_id: uuid.UUID) -> Tenant:
+def get_tenant_in_scope(
+    db: Session,
+    user: User,
+    tenant_id: uuid.UUID,
+) -> Tenant:
     tenant = db.get(Tenant, tenant_id)
 
     if not tenant:
@@ -194,30 +258,44 @@ def get_tenant_in_scope(db: Session, user: User, tenant_id: uuid.UUID) -> Tenant
             detail="Tenant not found",
         )
 
-    if user.role == UserRole.tenant and tenant.user_id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Tenant can only access own data",
-        )
+    if user.role == UserRole.tenant:
+        if tenant.user_id != user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tenant can only access own data",
+            )
+
+        return tenant
 
     if is_national_admin(user):
         return tenant
 
     if is_district_admin(user):
+        district_ids = get_district_admin_district_ids(db, user)
+
+        if not district_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No district scope assigned",
+            )
+
         tenant_property = (
             db.query(Property)
-            .filter(Property.landlord_id == tenant.landlord_id)
+            .filter(
+                Property.landlord_id == tenant.landlord_id,
+                Property.district_id.in_(district_ids),
+            )
             .first()
         )
 
         if not tenant_property:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Tenant landlord property not found",
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Tenant is outside your district scope",
             )
 
-        assert_district_access(db, user, tenant_property.district_id)
         return tenant
 
     assert_landlord_access(db, user, tenant.landlord_id)
+
     return tenant
