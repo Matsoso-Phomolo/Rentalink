@@ -1,10 +1,6 @@
 import secrets
 import uuid
-from datetime import datetime, timezone
-from datetime import timedelta, date
-
-from app.services.room_generation_service import generate_room_numbers
-from app.subscription_rules import calculate_property_subscription_amount
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -33,7 +29,6 @@ from app.models import (
     User,
     UserRole,
 )
-
 from app.schemas import (
     LandlordCreate,
     LandlordManualCreate,
@@ -45,6 +40,8 @@ from app.schemas import (
     LandlordVerificationCreate,
     LandlordVerificationReview,
 )
+from app.services.room_generation_service import generate_room_numbers
+from app.subscription_rules import calculate_property_subscription_amount
 
 router = APIRouter(prefix="/landlords", tags=["landlords"])
 
@@ -181,137 +178,7 @@ def list_landlord_requests(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.admin)),
 ):
-    return (
-        db.query(LandlordRequest)
-        .order_by(LandlordRequest.created_at.desc())
-        .all()
-    )
-
-
-@router.post("/requests/{request_id}/approve-verification", response_model=LandlordOnboardingResult)
-def approve_landlord_verification(
-    request_id: uuid.UUID,
-    payload: LandlordRequestDecision,
-    db: Session = Depends(get_db),
-    admin: User = Depends(require_roles(UserRole.admin)),
-):
-    request = db.get(LandlordRequest, request_id)
-
-    if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord request not found",
-        )
-
-    if request.status == LandlordRequestStatus.rejected:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Rejected landlord request cannot be approved",
-        )
-
-    password = payload.password or generated_password()
-
-    landlord = create_landlord_account(
-        db,
-        full_name=request.full_name,
-        email=request.email,
-        phone=request.phone,
-        address=request.address,
-        password=password,
-    )
-
-
-    request_properties = (
-    db.query(LandlordRequestProperty)
-    .filter(LandlordRequestProperty.landlord_request_id == request.id)
-    .all()
-)
-
-if not request_properties:
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="No verified properties found for this landlord request",
-    )
-
-for request_property in request_properties:
-    property_record = Property(
-        landlord_id=landlord.id,
-        district_id=request_property.district_id,
-        area_id=request_property.area_id,
-        name=request_property.property_name,
-        description=request_property.description,
-        location_area=request_property.village_location,
-        address=request_property.address,
-    )
-
-    db.add(property_record)
-    db.flush()
-
-    generated_rooms = generate_room_numbers(
-        total_rooms=request_property.total_rooms,
-        single_rooms=request_property.single_rooms,
-        double_rooms=request_property.double_rooms,
-        single_room_prefix=request_property.single_room_prefix,
-        double_room_prefix=request_property.double_room_prefix,
-        starting_room_number=request_property.starting_room_number,
-    )
-
-    for generated_room in generated_rooms:
-        room = Room(
-            landlord_id=landlord.id,
-            property_id=property_record.id,
-            room_number=generated_room.room_number,
-            room_type=generated_room.room_type,
-            status="vacant",
-            rent_price=request_property.estimated_monthly_rent or 0,
-            deposit_amount=request_property.estimated_monthly_rent or 0,
-        )
-        db.add(room)
-
-    amount, tier = calculate_property_subscription_amount(
-        db,
-        district_id=request_property.district_id,
-        total_rooms=request_property.total_rooms,
-    )
-
-    subscription = PropertySubscription(
-        landlord_id=landlord.id,
-        property_id=property_record.id,
-        total_rooms=request_property.total_rooms,
-        monthly_amount=amount,
-        pricing_tier=tier,
-        status=SubscriptionStatus.active,
-        start_date=date.today(),
-        renewal_date=date.today() + timedelta(days=30),
-    )
-
-    db.add(subscription)
-    
-
-    request.status = LandlordRequestStatus.approved
-    request.admin_note = payload.admin_note
-    request.landlord_id = landlord.id
-    request.approved_by_user_id = admin.id
-    request.approved_at = datetime.now(timezone.utc)
-
-    log_action(
-        db,
-        AuditAction.approve_landlord,
-        admin,
-        landlord.id,
-        "LandlordRequest",
-        request.id,
-    )
-
-    db.commit()
-    db.refresh(request)
-    db.refresh(landlord)
-
-    return LandlordOnboardingResult(
-        request=request,
-        landlord=landlord,
-        temporary_password=password if not payload.password else None,
-    )
+    return db.query(LandlordRequest).order_by(LandlordRequest.created_at.desc()).all()
 
 
 @router.post("/requests/{request_id}/reject", response_model=LandlordRequestRead)
@@ -324,10 +191,7 @@ def reject_landlord_request(
     request = db.get(LandlordRequest, request_id)
 
     if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord request not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord request not found")
 
     request.status = LandlordRequestStatus.rejected
     request.admin_note = payload.admin_note
@@ -336,7 +200,6 @@ def reject_landlord_request(
     db.refresh(request)
 
     return request
-
 
 
 @router.post("/requests/{request_id}/request-verification", response_model=LandlordRequestRead)
@@ -349,16 +212,13 @@ def request_landlord_verification(
     request = db.get(LandlordRequest, request_id)
 
     if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord request not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord request not found")
 
-    if request.status != LandlordRequestStatus.verification_submitted:
-    raise HTTPException(
-        status_code=status.HTTP_409_CONFLICT,
-        detail="Verification must be submitted before approval",
-    )
+    if request.status == LandlordRequestStatus.rejected:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Rejected request cannot be moved to verification",
+        )
 
     request.status = LandlordRequestStatus.verification_requested
     request.admin_note = payload.admin_note
@@ -380,10 +240,7 @@ def submit_landlord_verification(
     request = db.get(LandlordRequest, request_id)
 
     if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord request not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord request not found")
 
     if request.status != LandlordRequestStatus.verification_requested:
         raise HTTPException(
@@ -456,10 +313,7 @@ def reject_landlord_verification(
     request = db.get(LandlordRequest, request_id)
 
     if not request:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord request not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord request not found")
 
     if request.status not in [
         LandlordRequestStatus.verification_submitted,
@@ -478,6 +332,126 @@ def reject_landlord_verification(
 
     return request
 
+
+@router.post("/requests/{request_id}/approve-verification", response_model=LandlordOnboardingResult)
+def approve_landlord_verification(
+    request_id: uuid.UUID,
+    payload: LandlordRequestDecision,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_roles(UserRole.admin)),
+):
+    request = db.get(LandlordRequest, request_id)
+
+    if not request:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord request not found")
+
+    if request.status != LandlordRequestStatus.verification_submitted:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Verification must be submitted before approval",
+        )
+
+    request_properties = (
+        db.query(LandlordRequestProperty)
+        .filter(LandlordRequestProperty.landlord_request_id == request.id)
+        .all()
+    )
+
+    if not request_properties:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="No verified properties found for this landlord request",
+        )
+
+    password = payload.password or generated_password()
+
+    landlord = create_landlord_account(
+        db,
+        full_name=request.full_name,
+        email=request.email,
+        phone=request.phone,
+        address=request.address,
+        password=password,
+    )
+
+    for request_property in request_properties:
+        property_record = Property(
+            landlord_id=landlord.id,
+            district_id=request_property.district_id,
+            area_id=request_property.area_id,
+            name=request_property.property_name,
+            description=request_property.description,
+            location_area=request_property.village_location,
+            address=request_property.address,
+        )
+
+        db.add(property_record)
+        db.flush()
+
+        generated_rooms = generate_room_numbers(
+            total_rooms=request_property.total_rooms,
+            single_rooms=request_property.single_rooms,
+            double_rooms=request_property.double_rooms,
+            single_room_prefix=request_property.single_room_prefix,
+            double_room_prefix=request_property.double_room_prefix,
+            starting_room_number=request_property.starting_room_number,
+        )
+
+        for generated_room in generated_rooms:
+            room = Room(
+                landlord_id=landlord.id,
+                property_id=property_record.id,
+                room_number=generated_room.room_number,
+                room_type=generated_room.room_type,
+                status="vacant",
+                rent_price=request_property.estimated_monthly_rent or 0,
+                deposit_amount=request_property.estimated_monthly_rent or 0,
+            )
+            db.add(room)
+
+        amount, tier = calculate_property_subscription_amount(
+            db,
+            district_id=request_property.district_id,
+            total_rooms=request_property.total_rooms,
+        )
+
+        subscription = PropertySubscription(
+            landlord_id=landlord.id,
+            property_id=property_record.id,
+            total_rooms=request_property.total_rooms,
+            monthly_amount=amount,
+            pricing_tier=tier,
+            status=SubscriptionStatus.active,
+            start_date=date.today(),
+            renewal_date=date.today() + timedelta(days=30),
+        )
+
+        db.add(subscription)
+
+    request.status = LandlordRequestStatus.approved
+    request.admin_note = payload.admin_note
+    request.landlord_id = landlord.id
+    request.approved_by_user_id = admin.id
+    request.approved_at = datetime.now(timezone.utc)
+
+    log_action(
+        db,
+        AuditAction.approve_landlord,
+        admin,
+        landlord.id,
+        "LandlordRequest",
+        request.id,
+    )
+
+    db.commit()
+    db.refresh(request)
+    db.refresh(landlord)
+
+    return LandlordOnboardingResult(
+        request=request,
+        landlord=landlord,
+        temporary_password=password if not payload.password else None,
+    )
 
 
 @router.post("/manual", response_model=LandlordOnboardingResult)
@@ -538,11 +512,7 @@ def list_landlords(
     ensure_landlord_numbers(db)
 
     if is_national_admin(current_user):
-        return (
-            db.query(Landlord)
-            .order_by(Landlord.created_at.desc())
-            .all()
-        )
+        return db.query(Landlord).order_by(Landlord.created_at.desc()).all()
 
     if is_district_admin(current_user):
         district_ids = get_district_admin_district_ids(db, current_user)
@@ -559,11 +529,7 @@ def list_landlords(
             .all()
         )
 
-    landlord = (
-        db.query(Landlord)
-        .filter(Landlord.user_id == current_user.id)
-        .first()
-    )
+    landlord = db.query(Landlord).filter(Landlord.user_id == current_user.id).first()
 
     return [landlord] if landlord else []
 
@@ -577,10 +543,7 @@ def disable_landlord(
     landlord = db.get(Landlord, landlord_id)
 
     if not landlord:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord not found")
 
     landlord.is_active = False
 
@@ -602,10 +565,7 @@ def delete_landlord(
     landlord = db.get(Landlord, landlord_id)
 
     if not landlord:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Landlord not found",
-        )
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Landlord not found")
 
     landlord.is_active = False
 
