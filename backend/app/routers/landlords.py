@@ -213,7 +213,6 @@ def approve_landlord_verification(
 
     landlord = create_landlord_account(
         db,
-        business_name=request.full_name,
         full_name=request.full_name,
         email=request.email,
         phone=request.phone,
@@ -421,7 +420,6 @@ def manually_create_landlord(
 ):
     landlord = create_landlord_account(
         db,
-        business_name=payload.business_name,
         full_name=payload.full_name,
         email=str(payload.email),
         phone=payload.phone,
