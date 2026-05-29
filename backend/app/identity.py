@@ -4,20 +4,24 @@ from app.models import Landlord, Tenant, User, UserRole
 
 
 ROLE_PREFIXES = {
-    UserRole.admin: "LL-ADM",
-    UserRole.landlord: "LL-LND",
-    UserRole.caretaker: "LL-CRT",
-    UserRole.tenant: "LL-TNT",
+    UserRole.national_admin: "RL-NAT",
+    UserRole.district_admin: "RL-DADM",
+    UserRole.landlord: "RL-LND",
+    UserRole.caretaker: "RL-CRT",
+    UserRole.tenant: "RL-TNT",
 }
 
 
 def next_identifier(db: Session, role: UserRole) -> str:
     prefix = ROLE_PREFIXES[role]
     sequence = db.query(User).filter(User.username.like(f"{prefix}-%")).count() + 1
+
     while True:
         identifier = f"{prefix}-{sequence:06d}"
+
         if not db.query(User).filter(User.username == identifier).first():
             return identifier
+
         sequence += 1
 
 
