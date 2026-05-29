@@ -111,7 +111,7 @@ def create_listing(
     payload: ListingCreate,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     prop = get_property_in_scope(db, user, payload.property_id)
@@ -191,7 +191,7 @@ def create_listing(
 def my_listings(
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     return (
@@ -207,7 +207,7 @@ def update_listing(
     payload: ListingUpdate,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     listing = listing_in_scope(db, user, listing_id)
@@ -280,7 +280,7 @@ def archive_listing(
     listing_id: uuid.UUID,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     listing = listing_in_scope(db, user, listing_id)
@@ -298,7 +298,7 @@ def archive_listing(
 def verify_listing(
     listing_id: uuid.UUID,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles(UserRole.admin)),
+    user: User = Depends(require_roles(UserRole.national_admin)),
 ):
     listing = listing_in_scope(db, user, listing_id)
 
@@ -331,7 +331,7 @@ def reject_listing_verification(
     listing_id: uuid.UUID,
     payload: ApplicationDecision,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles(UserRole.admin)),
+    user: User = Depends(require_roles(UserRole.national_admin)),
 ):
     listing = listing_in_scope(db, user, listing_id)
 
@@ -361,7 +361,7 @@ def add_listing_photo(
     file: UploadFile,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     listing = listing_in_scope(db, user, listing_id)
@@ -381,7 +381,7 @@ def listing_viewing_requests(
     listing_id: uuid.UUID,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     listing = listing_in_scope(db, user, listing_id)
@@ -399,7 +399,7 @@ def listing_applications(
     listing_id: uuid.UUID,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     listing = listing_in_scope(db, user, listing_id)
@@ -418,7 +418,7 @@ def approve_application(
     payload: ApplicationDecision,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     application = db.get(TenantApplication, application_id)
@@ -446,7 +446,7 @@ def reject_application(
     payload: ApplicationDecision,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     application = db.get(TenantApplication, application_id)
@@ -474,7 +474,7 @@ def request_application_info(
     payload: ApplicationDecision,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     application = db.get(TenantApplication, application_id)
@@ -502,7 +502,7 @@ def assign_application_room(
     payload: ApplicationAssignRoom,
     db: Session = Depends(get_db),
     user: User = Depends(
-        require_roles(UserRole.admin, UserRole.landlord, UserRole.caretaker)
+        require_roles(UserRole.national_admin, UserRole.landlord, UserRole.caretaker)
     ),
 ):
     application = db.get(TenantApplication, application_id)
@@ -556,7 +556,7 @@ def assign_application_room(
 
             tenant_user = User(
                 username=next_identifier(db, UserRole.tenant),
-                email=application.email or f"{uuid.uuid4()}@tenant.linelink.local",
+                email=application.email or f"{uuid.uuid4()}@tenant.rentalink.local",
                 phone=application.phone,
                 full_name=application.full_name,
                 role=UserRole.tenant,
