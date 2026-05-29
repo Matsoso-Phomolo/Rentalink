@@ -1,8 +1,9 @@
-const CACHE_NAME = "rentalink-v1";
+const CACHE_NAME = "rentalink-v2";
 
 const urlsToCache = [
   "/",
   "/manifest.json",
+  "/offline.html",
   "/icons/icon-192.png",
   "/icons/icon-512.png"
 ];
@@ -17,8 +18,10 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("fetch", (event) => {
   event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request);
+    fetch(event.request).catch(() => {
+      return caches.match(event.request).then((response) => {
+        return response || caches.match("/offline.html");
+      });
     })
   );
 });
