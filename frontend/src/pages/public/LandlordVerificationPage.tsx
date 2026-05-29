@@ -14,7 +14,8 @@ type PropertyForm = {
   single_room_prefix: string;
   double_room_prefix: string;
   starting_room_number: string;
-  estimated_monthly_rent: string;
+  single_room_rent: string;
+  double_room_rent: string;
 };
 
 type VerificationForm = {
@@ -39,7 +40,8 @@ const emptyProperty = (): PropertyForm => ({
   single_room_prefix: "A",
   double_room_prefix: "B",
   starting_room_number: "101",
-  estimated_monthly_rent: "",
+  single_room_rent: "",
+  double_room_rent: "",
 });
 
 const initialVerification: VerificationForm = {
@@ -76,9 +78,7 @@ export function LandlordVerificationPage() {
   ) {
     setProperties((current) =>
       current.map((property, currentIndex) =>
-        currentIndex === index
-          ? { ...property, [key]: value }
-          : property
+        currentIndex === index ? { ...property, [key]: value } : property
       )
     );
   }
@@ -102,14 +102,18 @@ export function LandlordVerificationPage() {
       const doubles = Number(property.double_rooms);
 
       if (singles + doubles !== total) {
-        return `${property.property_name || "Property"} has invalid room totals. Single rooms + double rooms must equal total rooms.`;
+        return `${
+          property.property_name || "Property"
+        } has invalid room totals. Single rooms + double rooms must equal total rooms.`;
       }
 
       if (
         property.single_room_prefix.trim().toLowerCase() ===
         property.double_room_prefix.trim().toLowerCase()
       ) {
-        return `${property.property_name || "Property"} must use different prefixes for single and double rooms.`;
+        return `${
+          property.property_name || "Property"
+        } must use different prefixes for single and double rooms.`;
       }
     }
 
@@ -154,8 +158,11 @@ export function LandlordVerificationPage() {
             single_room_prefix: property.single_room_prefix,
             double_room_prefix: property.double_room_prefix,
             starting_room_number: Number(property.starting_room_number),
-            estimated_monthly_rent: property.estimated_monthly_rent
-              ? Number(property.estimated_monthly_rent)
+            single_room_rent: property.single_room_rent
+              ? Number(property.single_room_rent)
+              : null,
+            double_room_rent: property.double_room_rent
+              ? Number(property.double_room_rent)
               : null,
           })),
         }),
@@ -168,9 +175,7 @@ export function LandlordVerificationPage() {
       );
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to submit verification"
+        err instanceof Error ? err.message : "Unable to submit verification"
       );
     } finally {
       setSubmitting(false);
@@ -200,7 +205,7 @@ export function LandlordVerificationPage() {
 
           <div className="privacy-note">
             Each property must have its own physical address, room totals,
-            prefixes, and starting room number.
+            prefixes, starting room number, single rent, and double rent.
           </div>
 
           <a className="secondary-button" href="#/login">
@@ -485,22 +490,41 @@ export function LandlordVerificationPage() {
                 </label>
               </div>
 
-              <label>
-                Estimated monthly rent
-                <input
-                  min="0"
-                  type="number"
-                  value={property.estimated_monthly_rent}
-                  onChange={(event) =>
-                    updateProperty(
-                      index,
-                      "estimated_monthly_rent",
-                      event.target.value
-                    )
-                  }
-                  placeholder="750"
-                />
-              </label>
+              <div className="form-grid">
+                <label>
+                  Single room rent
+                  <input
+                    min="0"
+                    type="number"
+                    value={property.single_room_rent}
+                    onChange={(event) =>
+                      updateProperty(
+                        index,
+                        "single_room_rent",
+                        event.target.value
+                      )
+                    }
+                    placeholder="750"
+                  />
+                </label>
+
+                <label>
+                  Double room rent
+                  <input
+                    min="0"
+                    type="number"
+                    value={property.double_room_rent}
+                    onChange={(event) =>
+                      updateProperty(
+                        index,
+                        "double_room_rent",
+                        event.target.value
+                      )
+                    }
+                    placeholder="1200"
+                  />
+                </label>
+              </div>
             </section>
           ))}
 
