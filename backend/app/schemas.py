@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, EmailStr, Field, model_validator
 
 from app.models import (
     AllowedTenantType,
@@ -120,35 +120,13 @@ class LandlordRequestPropertyCreate(BaseModel):
     village_location: str
     address: str | None = None
     description: str | None = None
-    total_rooms: int = Field(gt=0)
-    estimated_monthly_rent: float | None = None
-
-
-class LandlordRequestPropertyRead(LandlordRequestPropertyCreate, ORMModel):
-    id: uuid.UUID
-    landlord_request_id: uuid.UUID
-    created_at: datetime
-
-
-class LandlordRequestPropertyCreate(BaseModel):
-    property_name: str
-
-    district_id: uuid.UUID
-    area_id: uuid.UUID
-
-    village_location: str
-
-    address: str | None = None
-    description: str | None = None
 
     total_rooms: int = Field(gt=0)
-
     single_rooms: int = Field(ge=0)
     double_rooms: int = Field(ge=0)
 
     single_room_prefix: str = "A"
     double_room_prefix: str = "B"
-
     starting_room_number: int = 101
 
     estimated_monthly_rent: float | None = None
@@ -156,16 +134,18 @@ class LandlordRequestPropertyCreate(BaseModel):
     @model_validator(mode="after")
     def validate_room_counts(self):
         if self.single_rooms + self.double_rooms != self.total_rooms:
-            raise ValueError(
-                "single_rooms + double_rooms must equal total_rooms"
-            )
+            raise ValueError("single_rooms + double_rooms must equal total_rooms")
 
         if self.single_room_prefix == self.double_room_prefix:
-            raise ValueError(
-                "single and double room prefixes must differ"
-            )
+            raise ValueError("single and double room prefixes must differ")
 
         return self
+
+
+class LandlordRequestPropertyRead(LandlordRequestPropertyCreate, ORMModel):
+    id: uuid.UUID
+    landlord_request_id: uuid.UUID
+    created_at: datetime
 
 
 class LandlordRequestCreate(BaseModel):
