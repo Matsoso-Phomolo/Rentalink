@@ -31,7 +31,15 @@ def get_current_user(
             detail="Invalid authentication credentials",
         )
 
-    user = db.get(User, uuid.UUID(payload["sub"]))
+    try:
+        user_id = uuid.UUID(str(payload["sub"]))
+    except (TypeError, ValueError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+        )
+
+    user = db.get(User, user_id)
 
     if not user or not user.is_active:
         raise HTTPException(
@@ -61,6 +69,18 @@ def is_national_admin(user: User) -> bool:
 
 def is_district_admin(user: User) -> bool:
     return user.role == UserRole.district_admin
+
+
+def is_landlord(user: User) -> bool:
+    return user.role == UserRole.landlord
+
+
+def is_caretaker(user: User) -> bool:
+    return user.role == UserRole.caretaker
+
+
+def is_tenant(user: User) -> bool:
+    return user.role == UserRole.tenant
 
 
 def get_district_admin_district_ids(
@@ -120,6 +140,19 @@ def assert_district_admin_access(
         )
 
 
+def require_national_admin() -> Callable:
+    def checker(current_user: User = Depends(get_current_user)) -> User:
+        if not is_national_admin(current_user):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="National admin permissions required",
+            )
+
+        return current_user
+
+    return checker
+
+
 def require_national_or_district_admin() -> Callable:
     def checker(current_user: User = Depends(get_current_user)) -> User:
         if current_user.role not in {
@@ -144,15 +177,36 @@ def get_actor_landlord_id(
         return None
 
     if user.role == UserRole.landlord:
-        profile = db.query(Landlord).filter(Landlord.user_id == user.id).first()
+        profile = (
+            db.query(Landlord)
+            .filter(
+                Landlord.user_id == user.id,
+                Landlord.is_active.is_(True),
+            )
+            .first()
+        )
+
         return profile.id if profile else None
 
     if user.role == UserRole.caretaker:
-        profile = db.query(Caretaker).filter(Caretaker.user_id == user.id).first()
+        profile = (
+            db.query(Caretaker)
+            .filter(
+                Caretaker.user_id == user.id,
+                Caretaker.is_active.is_(True),
+            )
+            .first()
+        )
+
         return profile.landlord_id if profile else None
 
     if user.role == UserRole.tenant:
-        profile = db.query(Tenant).filter(Tenant.user_id == user.id).first()
+        profile = (
+            db.query(Tenant)
+            .filter(Tenant.user_id == user.id)
+            .first()
+        )
+
         return profile.landlord_id if profile else None
 
     return None
