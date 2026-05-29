@@ -46,7 +46,7 @@ const districtAdminLinks = [
   { to: "/landlord/requests", label: "Room Requests" },
   { to: "/landlord/payments", label: "Payments" },
   { to: "/landlord/support", label: "Support" },
-  { to: "/rooms", label: "Room finder" },
+  { to: "/rooms", label: "Room Finder" },
   { to: "/security", label: "Security" },
 ];
 
@@ -90,11 +90,11 @@ export function AppLayout() {
     <div className="app-frame">
       <aside className="sidebar">
         <div className="brand-mark">
-          <span>LL</span>
+          <span>RL</span>
 
           <div>
-            <strong>LineLink</strong>
-            <small>Roma rental ops</small>
+            <strong>Rentalink</strong>
+            <small>Rental operations</small>
           </div>
         </div>
 
