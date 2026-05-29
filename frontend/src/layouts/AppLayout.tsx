@@ -1,5 +1,6 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { InstallAppButton } from "../components/InstallAppButton";
 
 const landlordLinks = [
   { to: "/landlord", label: "Dashboard" },
@@ -121,6 +122,8 @@ export function AppLayout() {
           <strong>{user?.full_name}</strong>
           <span>{user?.username}</span>
           <span>{user?.email}</span>
+
+          <InstallAppButton />
 
           <button type="button" onClick={handleLogout}>
             Log out
