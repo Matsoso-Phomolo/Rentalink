@@ -73,7 +73,7 @@ def submit_payment(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
             UserRole.tenant,
@@ -124,7 +124,7 @@ def list_payment_submissions(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -146,7 +146,7 @@ def approve_submission(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -248,7 +248,7 @@ def reject_submission(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -278,7 +278,7 @@ def list_receipts(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
