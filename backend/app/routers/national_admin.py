@@ -41,7 +41,7 @@ class DistrictAdminRead(BaseModel):
 @router.post("/run-reminders")
 def run_platform_reminders(
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     return run_reminders(db)
 
@@ -49,7 +49,7 @@ def run_platform_reminders(
 @router.get("/ai-risk-center")
 def ai_risk_center(
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     return build_ai_risk_center(db)
 
@@ -58,7 +58,7 @@ def ai_risk_center(
 def create_district_admin(
     payload: DistrictAdminCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     district = db.get(District, payload.district_id)
 
@@ -126,7 +126,7 @@ def create_district_admin(
 @router.get("/district-admins", response_model=list[DistrictAdminRead])
 def list_district_admins(
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     rows = (
         db.query(User, DistrictAdminAssignment, District)
@@ -157,7 +157,7 @@ def list_district_admins(
 def disable_district_admin(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     user = db.get(User, user_id)
 
@@ -182,7 +182,7 @@ def disable_district_admin(
 def enable_district_admin(
     user_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     user = db.get(User, user_id)
 
