@@ -68,7 +68,7 @@ def create_two_factor_challenge(db: Session, user: User) -> tuple[TwoFactorChall
 def register_user(
     payload: UserCreate,
     db: Session = Depends(get_db),
-    _: User = Depends(require_roles(UserRole.admin)),
+    _: User = Depends(require_roles(UserRole.national_admin)),
 ):
     if db.query(User).filter(User.email == payload.email).first():
         raise HTTPException(
@@ -440,7 +440,7 @@ def change_password(
 def admin_reset_user_password(
     payload: AdminPasswordReset,
     db: Session = Depends(get_db),
-    admin: User = Depends(require_roles(UserRole.admin)),
+    admin: User = Depends(require_roles(UserRole.national_admin)),
 ):
     identifier = payload.identifier.strip()
 
