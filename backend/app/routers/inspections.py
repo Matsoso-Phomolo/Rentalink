@@ -73,7 +73,7 @@ def create_inspection(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -98,7 +98,7 @@ def list_inspections(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -117,7 +117,7 @@ def complete_inspection(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -140,7 +140,7 @@ def create_damage(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -174,7 +174,7 @@ def list_damages(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -194,7 +194,7 @@ def update_damage_status(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
