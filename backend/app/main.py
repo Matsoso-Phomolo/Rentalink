@@ -32,7 +32,7 @@ from app.routers import (
     rent_dues,
     rooms,
     subscriptions,
-    support_tickets,
+    support,
     tenant_accounts,
     tenant_portal,
     tenants,
@@ -71,69 +71,37 @@ def health_check() -> dict[str, str]:
 # =========================================================
 
 app.include_router(users.router)
-
 app.include_router(admin.router)
-
 app.include_router(landlords.router)
-
 app.include_router(caretakers.router)
-
 app.include_router(categories.router)
-
 app.include_router(districts.router)
-
 app.include_router(district_areas.router)
-
 app.include_router(properties.router)
-
 app.include_router(rooms.router)
-
 app.include_router(tenants.router)
-
 app.include_router(occupancies.router)
-
 app.include_router(rent_dues.router)
-
 app.include_router(reminders.router)
-
 app.include_router(payments.router)
-
 app.include_router(payment_submissions.router)
-
 app.include_router(transfers.router)
-
 app.include_router(listings.router)
-
 app.include_router(public_listings.router)
-
 app.include_router(public_listings.form_router)
-
 app.include_router(tenant_accounts.router)
-
 app.include_router(tenant_portal.router)
-
-app.include_router(support_tickets.router)
-
+app.include_router(support.router)
 app.include_router(uploads.router)
-
 app.include_router(notifications.router)
-
 app.include_router(audit_logs.router)
-
 app.include_router(applications.router)
-
 app.include_router(line_rules.router)
-
 app.include_router(complaints.router)
-
 app.include_router(leases.router)
-
 app.include_router(messaging.router)
-
 app.include_router(inspections.router)
-
 app.include_router(subscriptions.router)
-
 app.include_router(dashboard.router)
 
 
