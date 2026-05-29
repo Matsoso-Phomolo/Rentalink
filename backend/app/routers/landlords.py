@@ -82,7 +82,6 @@ def ensure_landlord_numbers(db: Session) -> None:
 def create_landlord_account(
     db: Session,
     *,
-    business_name: str,
     full_name: str,
     email: str,
     phone: str | None,
@@ -214,7 +213,7 @@ def approve_landlord_verification(
 
     landlord = create_landlord_account(
         db,
-        business_name=request.business_name,
+        business_name=request.full_name,
         full_name=request.full_name,
         email=request.email,
         phone=request.phone,
