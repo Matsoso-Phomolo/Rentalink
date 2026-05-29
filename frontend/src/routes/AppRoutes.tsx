@@ -7,115 +7,133 @@ import { useAuth } from "../auth/AuthContext";
 
 const ForgotPasswordPage = lazy(() =>
   import("../pages/ForgotPasswordPage").then((module) => ({
-    default: module.ForgotPasswordPage
+    default: module.ForgotPasswordPage,
   }))
 );
 
 const ChangePasswordPage = lazy(() =>
   import("../pages/ChangePasswordPage").then((module) => ({
-    default: module.ChangePasswordPage
+    default: module.ChangePasswordPage,
   }))
 );
 
 const SecurityPage = lazy(() =>
   import("../pages/SecurityPage").then((module) => ({
-    default: module.SecurityPage
+    default: module.SecurityPage,
   }))
 );
 
 const PublicRoomFinderPage = lazy(() =>
   import("../pages/public/PublicRoomFinderPage").then((module) => ({
-    default: module.PublicRoomFinderPage
+    default: module.PublicRoomFinderPage,
   }))
 );
 
 const ApplicationFormPage = lazy(() =>
   import("../pages/public/ApplicationFormPage").then((module) => ({
-    default: module.ApplicationFormPage
+    default: module.ApplicationFormPage,
   }))
 );
 
 const LandlordRequestPage = lazy(() =>
   import("../pages/public/LandlordRequestPage").then((module) => ({
-    default: module.LandlordRequestPage
+    default: module.LandlordRequestPage,
+  }))
+);
+
+const LandlordVerificationPage = lazy(() =>
+  import("../pages/public/LandlordVerificationPage").then((module) => ({
+    default: module.LandlordVerificationPage,
   }))
 );
 
 const LandlordDashboardPage = lazy(() =>
   import("../pages/landlord/LandlordDashboardPage").then((module) => ({
-    default: module.LandlordDashboardPage
+    default: module.LandlordDashboardPage,
   }))
 );
 
 const PropertiesPage = lazy(() =>
   import("../pages/landlord/PropertiesPage").then((module) => ({
-    default: module.PropertiesPage
+    default: module.PropertiesPage,
   }))
 );
 
 const RoomsPage = lazy(() =>
   import("../pages/landlord/RoomsPage").then((module) => ({
-    default: module.RoomsPage
+    default: module.RoomsPage,
   }))
 );
 
 const CaretakersPage = lazy(() =>
   import("../pages/landlord/CaretakersPage").then((module) => ({
-    default: module.CaretakersPage
+    default: module.CaretakersPage,
   }))
 );
 
 const TenantsPage = lazy(() =>
   import("../pages/landlord/TenantsPage").then((module) => ({
-    default: module.TenantsPage
+    default: module.TenantsPage,
   }))
 );
 
 const ListingsPage = lazy(() =>
   import("../pages/landlord/ListingsPage").then((module) => ({
-    default: module.ListingsPage
+    default: module.ListingsPage,
   }))
 );
 
 const LeasesPage = lazy(() =>
   import("../pages/landlord/LeasesPage").then((module) => ({
-    default: module.LeasesPage
+    default: module.LeasesPage,
   }))
 );
 
 const RoomRequestsPage = lazy(() =>
   import("../pages/landlord/RoomRequestsPage").then((module) => ({
-    default: module.RoomRequestsPage
+    default: module.RoomRequestsPage,
   }))
 );
 
 const PaymentSubmissionsPage = lazy(() =>
   import("../pages/landlord/PaymentSubmissionsPage").then((module) => ({
-    default: module.PaymentSubmissionsPage
+    default: module.PaymentSubmissionsPage,
   }))
 );
 
 const BillingPage = lazy(() =>
   import("../pages/landlord/BillingPage").then((module) => ({
-    default: module.BillingPage
+    default: module.BillingPage,
   }))
 );
 
 const SupportTicketsPage = lazy(() =>
   import("../pages/landlord/SupportTicketsPage").then((module) => ({
-    default: module.SupportTicketsPage
+    default: module.SupportTicketsPage,
   }))
 );
 
 const TenantPortalPage = lazy(() =>
   import("../pages/tenant/TenantPortalPage").then((module) => ({
-    default: module.TenantPortalPage
+    default: module.TenantPortalPage,
   }))
 );
 
 const AdminDashboardPage = lazy(() =>
   import("../pages/admin/AdminDashboardPage").then((module) => ({
-    default: module.AdminDashboardPage
+    default: module.AdminDashboardPage,
+  }))
+);
+
+const LandlordRequestsPage = lazy(() =>
+  import("../pages/admin/LandlordRequestsPage").then((module) => ({
+    default: module.LandlordRequestsPage,
+  }))
+);
+
+const LandlordVerificationReviewPage = lazy(() =>
+  import("../pages/admin/LandlordVerificationReviewPage").then((module) => ({
+    default: module.LandlordVerificationReviewPage,
   }))
 );
 
@@ -145,6 +163,10 @@ export function AppRoutes() {
   return (
     <Suspense fallback={<main className="center-page">Loading LineLink...</main>}>
       <Routes>
+        {/* =========================
+            PUBLIC ROUTES
+        ========================= */}
+
         <Route path="/login" element={<LoginPage />} />
 
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -155,7 +177,16 @@ export function AppRoutes() {
 
         <Route path="/landlord-request" element={<LandlordRequestPage />} />
 
+        <Route
+          path="/landlord-verification"
+          element={<LandlordVerificationPage />}
+        />
+
         <Route path="/" element={<HomeRedirect />} />
+
+        {/* =========================
+            AUTHENTICATED
+        ========================= */}
 
         <Route element={<ProtectedRoute />}>
           <Route path="/change-password" element={<ChangePasswordPage />} />
@@ -211,6 +242,16 @@ export function AppRoutes() {
               <Route
                 path="/admin/landlords"
                 element={<AdminDashboardPage section="landlords" />}
+              />
+
+              <Route
+                path="/admin/landlord-requests"
+                element={<LandlordRequestsPage />}
+              />
+
+              <Route
+                path="/admin/landlord-verifications"
+                element={<LandlordVerificationReviewPage />}
               />
             </Route>
 
