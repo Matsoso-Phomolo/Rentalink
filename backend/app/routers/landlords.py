@@ -290,7 +290,8 @@ def submit_landlord_verification(
             single_room_prefix=property_payload.single_room_prefix,
             double_room_prefix=property_payload.double_room_prefix,
             starting_room_number=property_payload.starting_room_number,
-            estimated_monthly_rent=property_payload.estimated_monthly_rent,
+            single_room_rent=property_payload.single_room_rent,
+            double_room_rent=property_payload.double_room_rent,
         )
 
         db.add(property_record)
@@ -398,16 +399,22 @@ def approve_landlord_verification(
         )
 
         for generated_room in generated_rooms:
+            if generated_room.room_type == "single":
+                room_rent = request_property.single_room_rent or 0
+            else:
+                room_rent = request_property.double_room_rent or 0
+
             room = Room(
                 landlord_id=landlord.id,
                 property_id=property_record.id,
                 room_number=generated_room.room_number,
                 room_type=generated_room.room_type,
                 status="vacant",
-                rent_price=request_property.estimated_monthly_rent or 0,
-                deposit_amount=request_property.estimated_monthly_rent or 0,
-            )
-            db.add(room)
+                rent_price=room_rent,
+                deposit_amount=room_rent,
+           )
+
+           db.add(room)
 
         amount, tier = calculate_property_subscription_amount(
             db,
