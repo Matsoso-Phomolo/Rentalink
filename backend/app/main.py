@@ -14,6 +14,7 @@ from app.routers import (
     complaints,
     dashboard,
     district_areas,
+    district_risk,
     districts,
     inspections,
     landlords,
@@ -22,18 +23,22 @@ from app.routers import (
     listings,
     messaging,
     national_admin,
+    national_risk,
     notifications,
     occupancies,
     payment_submissions,
     payments,
+    portfolio_risk,
     properties,
     public_listings,
     reminders,
     rent_dues,
+    risk,
     rooms,
     subscriptions,
     support,
     tenant_accounts,
+    tenant_financial,
     tenant_portal,
     tenants,
     transfers,
@@ -42,7 +47,7 @@ from app.routers import (
 )
 
 app = FastAPI(
-    title="LineLink API",
+    title="Rentalink API",
     version="0.1.0",
 )
 
@@ -62,7 +67,7 @@ app.add_middleware(
 def health_check() -> dict[str, str]:
     return {
         "status": "ok",
-        "service": "LineLink API",
+        "service": "Rentalink API",
     }
 
 
@@ -103,6 +108,13 @@ app.include_router(messaging.router)
 app.include_router(inspections.router)
 app.include_router(subscriptions.router)
 app.include_router(dashboard.router)
+
+# Intelligence routers
+app.include_router(tenant_financial.router)
+app.include_router(risk.router)
+app.include_router(portfolio_risk.router)
+app.include_router(district_risk.router)
+app.include_router(national_risk.router)
 
 
 # =========================================================
