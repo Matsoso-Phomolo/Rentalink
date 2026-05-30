@@ -1,82 +1,371 @@
-# LineLink
+# Rentalink
 
-LineLink helps landlords manage Roma and NUL area line-houses remotely while helping room seekers find vacant rooms without walking around the village.
+Rentalink is a national rental governance and smart property operations platform designed for Lesotho rental ecosystems, student accommodations, line-houses, apartments, and property management operations.
 
-## Problem
+The platform helps:
+- National housing administrators oversee rental ecosystems
+- District administrators manage landlord onboarding and compliance
+- Landlords manage approved rental operations
+- Caretakers assist operational management
+- Tenants securely occupy assigned rooms
+- Public users discover verified vacant rooms online
 
-Room seekers often discover vacancies by physically asking around. Landlords and caretakers manage tenants, rent, applications, and maintenance through informal calls, messages, and paper records. LineLink brings those workflows into one controlled system.
+Rentalink transforms fragmented manual rental operations into a secure, scalable, and intelligent digital infrastructure.
 
-## Key Features
+---
 
-- Public vacant room finder
-- Landlord property and room management
-- Tenant onboarding by application and landlord approval
-- Occupancy tracking
-- Rent dues and payment submissions
-- Support tickets and maintenance visibility
-- Notifications and audit logs
-- Role-based access control for admins, landlords, caretakers, and tenants
+# Vision
 
-## Roles
+Rentalink aims to become the national digital rental infrastructure for Lesotho and beyond by modernizing:
 
-- Admin: platform owner/operator. The initial platform owner is Phomolo Matsoso.
-- Landlord: owns properties, rooms, listings, tenants, payments, and applications
-- Caretaker: acts within an assigned landlord/property scope
-- Tenant: sees only their own tenant portal data
-- Public visitor: browses public listings and applies for a specific room
+- rental governance
+- property operations
+- tenant onboarding
+- room allocation
+- rent management
+- listing verification
+- maintenance coordination
+- payment integration
+- occupancy intelligence
 
-## Public Room Finder
+---
 
-Public users can browse vacant rooms, filter by location, price, room type, and room size, view details, request a viewing, and apply for a specific listing.
+# Core Problems Solved
 
-## Tenant Onboarding Workflow
+Traditional rental operations often rely on:
 
-1. Public user finds a vacant room listing.
-2. User applies under that exact listing.
-3. The application is tied to `listing_id`, `room_id`, `property_id`, and `landlord_id` through the listing.
-4. Landlord or assigned caretaker reviews the application.
-5. Approval can lead to tenant account creation or linking.
-6. Assignment creates an occupancy, marks the room occupied, hides the listing, and starts rent dues.
+- walking around villages searching for rooms
+- paper records
+- WhatsApp messages
+- informal verbal agreements
+- poor occupancy tracking
+- weak landlord verification
+- no centralized governance
+- manual rent collection
 
-## Multi-Tenant Security
+Rentalink digitizes and secures these workflows into one controlled platform.
 
-LineLink treats every line-house or apartment as belonging to one landlord. Landlord and caretaker routes are filtered by landlord scope. Tenants can access only their own data. Public listings are the only public records.
+---
 
-## Deployment Overview
+# Platform Architecture
 
-- Backend: FastAPI on Render with PostgreSQL and Alembic migrations.
-- Frontend: React/Vite on Vercel.
-- Secrets: provided through Render and Vercel environment variables, not committed to Git.
+Rentalink uses a hierarchical governance architecture.
 
-## Production Admin Setup
-
-LineLink does not rely on demo users in production. On Render, the backend start command runs migrations and then `python -m app.seed`. Users sign in with system identifiers such as `LL-ADM-000001`, `LL-LND-000001`, and `LL-TNT-000001`; email login remains a compatibility fallback.
-
-With:
-
-```env
-APP_ENV=production
-SEED_DEMO_DATA=false
-ADMIN_EMAIL=your-admin-email
-ADMIN_PASSWORD=your-secure-password
-ADMIN_FULL_NAME=Phomolo Matsoso
+```text
+National Admin
+    ↓
+District Admin
+    ↓
+Landlord
+    ↓
+Caretaker (optional)
+    ↓
+Tenant
 ```
 
-the seed script creates only the first admin if needed and skips landlord, tenant, listing, payment, and ticket demo records.
+---
 
-## Repository Safety
+# Roles and Responsibilities
 
-Local setup notes, `.env` files, and internal deployment notes are not public product artifacts. Do not expose local README files, internal docs, or environment files through frontend routes, static hosting, or production builds.
+## National Admin
 
-## Render Backend Deployment
+Highest authority in the platform.
 
-Use a clean PostgreSQL database dedicated to LineLink in production. Do not reuse another project database unless LineLink is isolated in a separate schema.
+Responsibilities:
+- create district admins
+- oversee national rental operations
+- monitor system-wide risks
+- verify district governance
+- oversee payment infrastructure
+- manage platform subscriptions
+- manage listing verification systems
+- monitor fraud and abuse
+- manage AI risk intelligence
 
-Build command:
+---
 
-```bash
-pip install -r requirements.txt
+## District Admin
+
+District-level rental authority.
+
+Responsibilities:
+- onboard and approve landlords
+- create approved property records
+- allocate room capacity
+- monitor district rental operations
+- oversee district compliance
+- handle landlord verification
+- manage district rental disputes
+- review suspicious activities
+
+District admins operate only within assigned districts.
+
+---
+
+## Landlord
+
+Approved property owner/operator.
+
+Responsibilities:
+- manage approved properties
+- manage approved room inventory
+- onboard tenants
+- assign tenants to rooms
+- manage payments
+- manage maintenance
+- manage caretakers
+- manage occupancy operations
+
+Landlords cannot create unlimited tenant accounts.
+
+Tenant capacity is restricted by room availability.
+
+```text
+active_tenants <= total_rooms
 ```
+
+---
+
+## Caretaker (Optional)
+
+Operational assistant assigned by landlord.
+
+Responsibilities:
+- assist tenant operations
+- assist maintenance coordination
+- manage room status updates
+- assist occupancy workflows
+- monitor operational issues
+
+Caretakers operate only within assigned landlord/property scope.
+
+---
+
+## Tenant
+
+Assigned occupant of a verified room.
+
+Tenants can:
+- access tenant portal
+- view rent obligations
+- submit payment confirmations
+- receive notifications
+- request support
+- monitor occupancy information
+
+Tenants can access only their own records.
+
+---
+
+## Public Visitor
+
+Unauthenticated public user.
+
+Public users can:
+- search vacant rooms
+- filter listings
+- request viewings
+- submit rental applications
+
+Public users cannot access internal management operations.
+
+---
+
+# Public Room Finder
+
+Rentalink includes a public room discovery system.
+
+Users can:
+- browse available rooms
+- filter by district
+- filter by location
+- filter by room type
+- filter by price
+- filter by occupancy type
+- view verified listings
+- apply for rooms
+- request room viewings
+
+This removes the need to physically search villages for vacancies.
+
+---
+
+# Tenant Onboarding Workflow
+
+## Step 1 — Public Discovery
+
+A public user discovers a vacant verified listing.
+
+---
+
+## Step 2 — Application
+
+The applicant submits:
+- personal details
+- contact information
+- application request
+
+Applications are tied to:
+- listing_id
+- room_id
+- property_id
+- landlord_id
+
+---
+
+## Step 3 — Review
+
+Landlord or caretaker reviews the application.
+
+Possible actions:
+- approve
+- reject
+- request additional information
+
+---
+
+## Step 4 — Tenant Assignment
+
+Once approved:
+- tenant account is created
+- occupancy is created
+- room becomes occupied
+- listing becomes hidden
+- rent workflow begins
+
+---
+
+# Occupancy Enforcement
+
+Rentalink enforces room occupancy limits.
+
+Example:
+
+```text
+20 rooms = maximum 20 active tenants
+```
+
+The system prevents:
+- over-allocation
+- fake occupancy
+- unlimited tenant creation
+- ghost tenant records
+
+---
+
+# Security Architecture
+
+Rentalink uses strict multi-tenant isolation.
+
+## Isolation Rules
+
+### National Admin
+- full system visibility
+
+### District Admin
+- district-scoped access only
+
+### Landlord
+- landlord-scoped access only
+
+### Caretaker
+- delegated scoped access only
+
+### Tenant
+- self-data access only
+
+### Public User
+- public listings only
+
+---
+
+# AI Risk and Governance
+
+Rentalink includes intelligent operational monitoring.
+
+Capabilities include:
+- suspicious activity monitoring
+- occupancy anomaly detection
+- payment risk detection
+- fraudulent listing monitoring
+- verification intelligence
+- governance visibility
+- operational audit logging
+
+---
+
+# Payment Infrastructure
+
+Rentalink includes MoPay payment integration scaffolding.
+
+Supported payment flows:
+- M-Pesa
+- EcoCash
+- bank transfers
+- card payments
+- rent payments
+- deposits
+- landlord subscriptions
+
+Rentalink never stores:
+- card PINs
+- M-Pesa PINs
+- EcoCash secrets
+- wallet credentials
+
+Sensitive credentials remain only in secure environment variables.
+
+---
+
+# Progressive Web App (PWA)
+
+Rentalink supports installable app behavior.
+
+Features:
+- installable on phones
+- mobile-friendly
+- responsive dashboards
+- offline-ready architecture preparation
+- app manifest support
+- service worker support
+
+---
+
+# Technology Stack
+
+## Backend
+
+- FastAPI
+- SQLAlchemy
+- PostgreSQL
+- Alembic
+- Pydantic
+- JWT Authentication
+
+---
+
+## Frontend
+
+- React
+- Vite
+- TypeScript
+- CSS modules/global styling
+
+---
+
+## Deployment
+
+- Render (Backend)
+- Vercel (Frontend)
+- Neon PostgreSQL
+
+---
+
+# Deployment Overview
+
+## Backend
+
+Production backend runs on Render.
 
 Start command:
 
@@ -84,95 +373,159 @@ Start command:
 alembic upgrade head && python -m app.seed && uvicorn app.main:app --host 0.0.0.0 --port $PORT
 ```
 
-Required backend environment variables:
+---
+
+## Frontend
+
+Frontend runs on Vercel.
+
+Build command:
+
+```bash
+npm run build
+```
+
+Output directory:
+
+```text
+dist
+```
+
+---
+
+# Required Backend Environment Variables
 
 ```env
 APP_ENV=production
 SEED_DEMO_DATA=false
-ADMIN_EMAIL=your-admin-email
-ADMIN_PASSWORD=your-secure-password
-ADMIN_FULL_NAME=LineLink Admin
-DATABASE_URL=Render PostgreSQL URL
-SECRET_KEY=secure-random-secret
-ALLOWED_ORIGINS=https://your-vercel-domain.vercel.app
-PUBLIC_BASE_URL=https://your-render-backend.onrender.com
+
+DATABASE_URL=your-database-url
+
+SECRET_KEY=your-secret-key
+
+ADMIN_EMAIL=your-email
+ADMIN_PASSWORD=your-password
+ADMIN_FULL_NAME=Phomolo Matsoso
+
+ALLOWED_ORIGINS=https://your-frontend-domain.vercel.app
+
+PUBLIC_BASE_URL=https://your-backend-domain.onrender.com
 ```
 
-Run deployment validation:
+---
 
-```bash
-python -m app.validate_deployment --health-url https://your-render-backend.onrender.com/health
+# Production Setup
+
+Rentalink production environments do not rely on demo users.
+
+The seed system creates:
+- initial national admin only
+
+Demo data is skipped in production.
+
+---
+
+# Production User Identifiers
+
+Example identifiers:
+
+```text
+RL-NAT-000001
+RL-DADM-000001
+RL-LND-000001
+RL-CRT-000001
+RL-TNT-000001
 ```
 
-## Vercel Frontend Deployment
+---
 
-Set:
+# Repository Security
 
-```env
-VITE_API_BASE_URL=https://your-render-backend.onrender.com
-```
+Never:
+- commit `.env`
+- expose secrets
+- expose internal deployment notes
+- expose database credentials
+- expose payment credentials
 
-Use Vite defaults:
+---
 
-- Build command: `npm run build`
-- Output directory: `dist`
+# Security Recommendations
 
-## Security Notes
+## Production Requirements
 
-- Never use `ChangeMe123!` in production.
-- Never expose or commit `.env`.
-- Rotate `SECRET_KEY` before production.
-- Keep demo seed data only for local or staging deployments.
-- Keep `SEED_DEMO_DATA=false` for production.
-- LineLink never collects or stores M-Pesa, EcoCash, wallet PINs, or card secrets.
-- MoPay credentials must live only in Render environment variables.
-- Admin accounts require two-factor authentication; landlord/caretaker 2FA is scaffolded and can be enabled.
+- strong SECRET_KEY
+- HTTPS only
+- production database isolation
+- secure environment variables
+- no demo data in production
+- restricted admin access
+- two-factor authentication support
 
-## MoPay Payment Readiness
+---
 
-LineLink includes a MoPay payment gateway scaffold for M-Pesa, EcoCash, card payments, bank references, tenant rent, deposits, and landlord subscription payments.
+# Deployment Troubleshooting
 
-Expected production URLs:
+## Python Version
 
-- Frontend: `https://linelink-three.vercel.app`
-- Backend: `https://linelink.onrender.com`
-- Webhook: `https://linelink.onrender.com/payments/callback/mopay`
+Use Python 3.11.x in production.
 
-See `docs/mopay-onboarding.md` for the onboarding checklist.
+Avoid unsupported production builds with newer unstable versions.
 
-## Deployment Troubleshooting
+---
 
-- If Render uses Python 3.14 and `pydantic-core` fails while building Rust dependencies, force Python 3.11.9. This repository pins the backend with `backend/runtime.txt` and `backend/.python-version`.
-- If Render fails with `relation already exists` or an Alembic table conflict, the database is not clean or a previous failed deployment partially created tables.
+## Database Reset Warning
 
-Database conflict fixes:
+Never automatically drop schemas in production startup code.
 
-Option A, recommended: create a fresh PostgreSQL database dedicated to LineLink, update `DATABASE_URL`, and redeploy.
-
-Option B, dangerous reset: only if the database contains no important data, run:
+If a database becomes corrupted during development:
 
 ```sql
 DROP SCHEMA public CASCADE;
 CREATE SCHEMA public;
 ```
 
-Never add automatic table/schema drops to LineLink startup or seed code.
+Use only for empty development databases.
 
-## Post-Deployment Test Checklist
+---
 
-1. Backend `/health` returns `200`.
-2. Swagger `/docs` opens on the backend.
-3. Vercel frontend can call `GET /public/listings` without CORS errors.
-4. Production admin can log in.
-5. Public users can submit viewing requests and applications under a listing.
-6. Landlord/caretaker can approve, reject, request info, and assign an application.
-7. Assignment creates an occupancy, marks the room occupied, and hides the public listing.
+# Current Production Infrastructure
 
-## Roadmap
+## Frontend
 
-- Mobile app with React Native/Expo
-- Lease documents and digital signatures
-- SMS and email delivery for invitations
-- Rich maintenance work orders
-- Billing dashboard for platform subscriptions
-- Room photos and document upload improvements
+```text
+https://linelink-three.vercel.app
+```
+
+---
+
+## Backend
+
+```text
+https://linelink.onrender.com
+```
+
+---
+
+# Roadmap
+
+## Planned Features
+
+- React Native mobile application
+- digital lease agreements
+- AI operational intelligence
+- smart rental analytics
+- SMS notifications
+- email notifications
+- advanced payment automation
+- document uploads
+- maintenance workflows
+- landlord subscription billing
+- district intelligence dashboards
+- national rental intelligence systems
+
+---
+
+# Rentalink Mission
+
+Rentalink is building secure, intelligent, and scalable digital rental infrastructure for Africa.
