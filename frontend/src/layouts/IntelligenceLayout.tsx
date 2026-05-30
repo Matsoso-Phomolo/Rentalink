@@ -1,33 +1,54 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
 
-const intelligenceLinks = [
+type IntelligenceLink = {
+  label: string;
+  to: string;
+  roles: string[];
+  end?: boolean;
+};
+
+const intelligenceLinks: IntelligenceLink[] = [
   {
     label: "Executive Overview",
     to: "/intelligence",
+    roles: ["national_admin"],
+    end: true,
   },
   {
     label: "National Intelligence",
     to: "/intelligence/national",
+    roles: ["national_admin"],
   },
   {
     label: "District Intelligence",
     to: "/intelligence/district",
+    roles: ["district_admin"],
   },
   {
     label: "Portfolio Intelligence",
     to: "/intelligence/portfolio",
+    roles: ["landlord", "caretaker"],
   },
   {
     label: "Tenant Financial",
     to: "/intelligence/tenant",
+    roles: ["tenant"],
   },
   {
     label: "Operational Alerts",
     to: "/intelligence/alerts",
+    roles: ["national_admin", "district_admin", "landlord", "caretaker"],
   },
 ];
 
 export default function IntelligenceLayout() {
+  const { user } = useAuth();
+
+  const visibleLinks = intelligenceLinks.filter((link) =>
+    link.roles.includes(user?.role || "")
+  );
+
   return (
     <div className="min-h-screen bg-black text-white flex">
       <aside className="w-72 bg-gray-950 border-r border-gray-800 p-6 hidden lg:block">
@@ -46,11 +67,11 @@ export default function IntelligenceLayout() {
         </div>
 
         <nav className="space-y-2">
-          {intelligenceLinks.map((link) => (
+          {visibleLinks.map((link) => (
             <NavLink
               key={link.to}
               to={link.to}
-              end={link.to === "/intelligence"}
+              end={link.end || link.to === "/intelligence"}
               className={({ isActive }) =>
                 [
                   "block rounded-xl px-4 py-3 text-sm font-medium transition",
@@ -64,6 +85,20 @@ export default function IntelligenceLayout() {
             </NavLink>
           ))}
         </nav>
+
+        <div className="mt-10 rounded-2xl border border-gray-800 bg-black p-4">
+          <p className="text-xs uppercase tracking-widest text-gray-500">
+            Signed in as
+          </p>
+
+          <p className="mt-2 font-semibold text-white">
+            {user?.full_name || "Rentalink User"}
+          </p>
+
+          <p className="text-sm text-cyan-400">
+            {user?.role || "unknown_role"}
+          </p>
+        </div>
       </aside>
 
       <main className="flex-1 min-w-0">
