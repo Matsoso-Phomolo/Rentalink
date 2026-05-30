@@ -48,6 +48,7 @@ class RentalMode(str, enum.Enum):
 class RoomType(str, enum.Enum):
     single = "single"
     double = "double"
+    multiple = "multiple"
 
 
 class TenantType(str, enum.Enum):
