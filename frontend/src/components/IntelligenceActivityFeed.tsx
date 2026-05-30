@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { useIntelligenceSocket } from "../hooks/useIntelligenceSocket";
+
 const API_BASE =
   import.meta.env.VITE_API_URL || "http://127.0.0.1:9000";
 
@@ -15,6 +17,8 @@ export default function IntelligenceActivityFeed() {
   const [events, setEvents] = useState<FeedEvent[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const { connected, lastMessage } = useIntelligenceSocket();
+
   useEffect(() => {
     loadFeed();
 
@@ -24,6 +28,28 @@ export default function IntelligenceActivityFeed() {
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    if (!lastMessage) return;
+
+    const liveEvent: FeedEvent = {
+      id: `live-${Date.now()}`,
+      severity: lastMessage.severity || "watchlist",
+      title:
+        lastMessage.title ||
+        "Live intelligence update",
+      description:
+        lastMessage.description ||
+        "A live operational intelligence event was received.",
+      timestamp:
+        lastMessage.created_at ||
+        new Date().toISOString(),
+    };
+
+    setEvents((current) =>
+      [liveEvent, ...current].slice(0, 50)
+    );
+  }, [lastMessage]);
 
   async function loadFeed() {
     try {
@@ -90,7 +116,10 @@ export default function IntelligenceActivityFeed() {
 
       setEvents(generatedEvents);
     } catch (error) {
-      console.error("Failed to load intelligence activity feed", error);
+      console.error(
+        "Failed to load intelligence activity feed",
+        error
+      );
     } finally {
       setLoading(false);
     }
@@ -127,8 +156,14 @@ export default function IntelligenceActivityFeed() {
           </h2>
         </div>
 
-        <span className="rounded-full bg-green-500/10 text-green-400 border border-green-700 px-3 py-1 text-sm">
-          Live Monitoring
+        <span
+          className={`rounded-full border px-3 py-1 text-sm ${
+            connected
+              ? "bg-green-500/10 text-green-400 border-green-700"
+              : "bg-yellow-500/10 text-yellow-400 border-yellow-700"
+          }`}
+        >
+          {connected ? "Live WebSocket" : "Reconnecting"}
         </span>
       </div>
 
@@ -208,16 +243,28 @@ function FeedItem({
 }
 
 function severityText(severity?: string) {
-  if (severity === "critical") return "text-red-400";
-  if (severity === "risky") return "text-orange-400";
-  if (severity === "watchlist") return "text-yellow-400";
+  if (severity === "critical")
+    return "text-red-400";
+
+  if (severity === "risky")
+    return "text-orange-400";
+
+  if (severity === "watchlist")
+    return "text-yellow-400";
+
   return "text-green-400";
 }
 
 function severityBorder(severity?: string) {
-  if (severity === "critical") return "border-red-700";
-  if (severity === "risky") return "border-orange-700";
-  if (severity === "watchlist") return "border-yellow-700";
+  if (severity === "critical")
+    return "border-red-700";
+
+  if (severity === "risky")
+    return "border-orange-700";
+
+  if (severity === "watchlist")
+    return "border-yellow-700";
+
   return "border-green-700";
 }
 
