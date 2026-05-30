@@ -25,7 +25,7 @@ router = APIRouter(prefix="/rooms", tags=["rooms"])
 def create_room(
     payload: RoomCreate,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles(UserRole.admin, UserRole.landlord)),
+    user: User = Depends(require_roles(UserRole.national_admin, UserRole.landlord)),
 ):
     prop = get_property_in_scope(db, user, payload.property_id)
 
@@ -60,7 +60,7 @@ def update_room(
     db: Session = Depends(get_db),
     user: User = Depends(
         require_roles(
-            UserRole.admin,
+            UserRole.national_admin,
             UserRole.landlord,
             UserRole.caretaker,
         )
@@ -107,7 +107,7 @@ def update_room(
 def delete_room(
     room_id: uuid.UUID,
     db: Session = Depends(get_db),
-    user: User = Depends(require_roles(UserRole.admin, UserRole.landlord)),
+    user: User = Depends(require_roles(UserRole.national_admin, UserRole.landlord)),
 ):
     room = get_room_in_scope(db, user, room_id)
 
