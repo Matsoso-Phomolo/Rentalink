@@ -142,6 +142,11 @@ def generate_monthly_rent_dues(
 def refresh_due_status(due: RentDue) -> None:
     today = date.today()
 
+    if due.due_date and due.due_date < today:
+        due.days_overdue = (today - due.due_date).days
+    else:
+        due.days_overdue = 0
+
     due.is_late = bool(
         due.due_date
         and due.due_date < today
