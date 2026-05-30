@@ -637,8 +637,8 @@ class Occupancy(Base, TimestampMixin):
         UniqueConstraint(
             "room_id",
             "occupancy_slot_number",
-            "status",
-            name="uq_room_slot_status",
+            "move_out_date",
+            name="uq_room_slot_move_out",
        ),
     )
 
