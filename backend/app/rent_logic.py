@@ -15,6 +15,16 @@ def first_day(value: date) -> date:
     return date(value.year, value.month, 1)
 
 
+def generate_payment_reference(
+    due_month: date,
+    occupancy_id: str,
+) -> str:
+    period = due_month.strftime("%Y%m")
+    short_id = occupancy_id.replace("-", "")[:6].upper()
+
+    return f"RL-DUE-{period}-{short_id}"
+
+
 def calculate_due_status(due: RentDue) -> RentDueStatus:
     amount_due = Decimal(due.amount_due or 0)
     amount_paid = Decimal(due.amount_paid or 0)
@@ -44,6 +54,12 @@ def generate_initial_rent_due(
     )
 
     if existing_due:
+        if not existing_due.payment_reference:
+            existing_due.payment_reference = generate_payment_reference(
+                due_month,
+                str(occupancy.id),
+            )
+
         refresh_due_status(existing_due)
         return existing_due
 
@@ -52,6 +68,10 @@ def generate_initial_rent_due(
         tenant_id=occupancy.tenant_id,
         occupancy_id=occupancy.id,
         due_month=due_month,
+        payment_reference=generate_payment_reference(
+            due_month,
+            str(occupancy.id),
+        ),
         due_date=due_month,
         amount_due=occupancy.monthly_rent,
         amount_paid=Decimal("0"),
@@ -88,6 +108,12 @@ def generate_monthly_rent_dues(
         )
 
         if existing_due:
+            if not existing_due.payment_reference:
+                existing_due.payment_reference = generate_payment_reference(
+                    due_month,
+                    str(occupancy.id),
+                )
+
             refresh_due_status(existing_due)
             dues.append(existing_due)
             continue
@@ -97,6 +123,10 @@ def generate_monthly_rent_dues(
             tenant_id=occupancy.tenant_id,
             occupancy_id=occupancy.id,
             due_month=due_month,
+            payment_reference=generate_payment_reference(
+                due_month,
+                str(occupancy.id),
+            ),
             due_date=due_month,
             amount_due=occupancy.monthly_rent,
             amount_paid=Decimal("0"),
