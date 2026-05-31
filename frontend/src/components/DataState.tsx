@@ -1,5 +1,5 @@
 export function LoadingState() {
-  return <div className="data-state">Loading latest LineLink data...</div>;
+  return <div className="data-state">Loading latest Rentalink data...</div>;
 }
 
 export function ErrorState({ message }: { message: string }) {

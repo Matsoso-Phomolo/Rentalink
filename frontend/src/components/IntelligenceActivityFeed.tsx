@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntelligenceSocket } from "../hooks/useIntelligenceSocket";
 
 const API_BASE =
-  import.meta.env.VITE_API_URL || "http://127.0.0.1:9000";
+  import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8001";
 
 type FeedEvent = {
   id: string;

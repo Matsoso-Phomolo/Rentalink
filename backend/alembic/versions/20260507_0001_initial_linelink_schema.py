@@ -1,4 +1,4 @@
-"""initial linelink schema
+"""initial rentalink schema
 
 Revision ID: 20260507_0001
 Revises:

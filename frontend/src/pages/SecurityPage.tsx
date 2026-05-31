@@ -40,7 +40,7 @@ export function SecurityPage() {
         <div>
           <p className="eyebrow">Security</p>
           <h1>Two-factor authentication</h1>
-          <p>Protect sensitive LineLink access with an email, SMS, or WhatsApp OTP scaffold.</p>
+          <p>Protect sensitive Rentalink access with an email, SMS, or WhatsApp OTP scaffold.</p>
         </div>
         <StatusPill value={user?.two_factor_enabled || user?.two_factor_required ? "enabled" : "disabled"} />
       </div>

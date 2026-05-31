@@ -190,7 +190,7 @@ export function TenantPortalPage() {
               <div>
                 <p className="eyebrow">Secure mobile money</p>
                 <h2>Submit payment request</h2>
-                <p>LineLink never asks for or stores wallet PINs. Confirm only on the official wallet prompt, USSD, or app.</p>
+                <p>Rentalink never asks for or stores wallet PINs. Confirm only on the official wallet prompt, USSD, or app.</p>
               </div>
               <div className="form-grid">
                 <label>Amount<input required inputMode="numeric" value={paymentForm.amount} onChange={(event) => setPaymentForm((current) => ({ ...current, amount: event.target.value }))} /></label>

@@ -141,7 +141,7 @@ function HomeRedirect() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <main className="center-page">Loading LineLink...</main>;
+    return <main className="center-page">Loading Rentalink...</main>;
   }
 
   if (!user) {
@@ -165,7 +165,7 @@ function HomeRedirect() {
 
 export function AppRoutes() {
   return (
-    <Suspense fallback={<main className="center-page">Loading LineLink...</main>}>
+    <Suspense fallback={<main className="center-page">Loading Rentalink...</main>}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />

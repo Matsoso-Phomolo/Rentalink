@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from app.audit import log_action
+from app.application_rules import validate_application_record_against_listing
 from app.auth import get_password_hash
 from app.database import get_db
 from app.dependencies import require_roles
@@ -531,6 +532,14 @@ def assign_application_room(
             status_code=status.HTTP_409_CONFLICT,
             detail="Room is no longer available.",
         )
+
+    validate_application_record_against_listing(
+        listing,
+        application.tenant_type,
+        application.institution,
+        application.student_number,
+        application.occupation,
+    )
 
     tenant = None
 

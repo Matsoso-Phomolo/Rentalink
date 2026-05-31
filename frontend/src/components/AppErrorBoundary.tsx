@@ -23,7 +23,7 @@ export class AppErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error("LineLink UI error", error, info);
+    console.error("Rentalink UI error", error, info);
   }
 
   render() {
@@ -31,7 +31,7 @@ export class AppErrorBoundary extends Component<Props, State> {
       return (
         <main className="center-page">
           <section className="auth-card">
-            <p className="eyebrow">LineLink</p>
+            <p className="eyebrow">Rentalink</p>
             <h1>We could not load this screen</h1>
             <p>Refresh the page or return to the login screen. Your account data is still protected.</p>
             <button className="primary-button" type="button" onClick={this.resetSession}>Reset session and return to login</button>

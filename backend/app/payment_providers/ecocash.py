@@ -13,5 +13,5 @@ class EcoCashProvider(PaymentProvider):
         return PaymentProviderResult(
             checkout_request_id=checkout_id,
             provider_reference=reference,
-            message=f"Payment request sent through {provider_name}. Confirm on your phone. LineLink never asks for your wallet PIN.",
+            message=f"Payment request sent through {provider_name}. Confirm on your phone. Rentalink never asks for your wallet PIN.",
         )

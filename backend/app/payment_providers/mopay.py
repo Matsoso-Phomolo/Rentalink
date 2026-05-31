@@ -21,5 +21,5 @@ class MoPayProvider(PaymentProvider):
         return PaymentProviderResult(
             checkout_request_id=checkout_id,
             provider_reference=reference,
-            message=f"{variant} payment request created through {provider_name}.{phone_note} LineLink never asks for wallet PINs or card secrets.",
+            message=f"{variant} payment request created through {provider_name}.{phone_note} Rentalink never asks for wallet PINs or card secrets.",
         )

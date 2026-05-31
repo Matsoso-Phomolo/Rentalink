@@ -225,7 +225,7 @@ def lease_pdf(
     lease = lease_in_scope(db, user, lease_id)
 
     content = (
-        f"LineLink Lease Agreement\n\n"
+        f"Rentalink Lease Agreement\n\n"
         f"Lease: {lease.lease_number}\n"
         f"Monthly rent: M{lease.monthly_rent}\n"
         f"Deposit: M{lease.deposit_amount}\n"

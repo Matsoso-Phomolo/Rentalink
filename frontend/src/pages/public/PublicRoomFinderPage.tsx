@@ -259,7 +259,7 @@ export function PublicRoomFinderPage() {
         <div className="brand-mark light">
           <span>LL</span>
           <div>
-            <strong>LineLink</strong>
+            <strong>Rentalink</strong>
             <small>Room finder</small>
           </div>
         </div>
@@ -297,7 +297,7 @@ export function PublicRoomFinderPage() {
                   : "Browse published vacant rooms inside this area, filter by price and room type, then request a room."
                 : selectedDistrict
                   ? "Choose an active area inside this district. Locked areas remain hidden until rollout."
-                  : "Choose an active district first. Locked districts remain hidden until LineLink officially rolls out there."}
+                  : "Choose an active district first. Locked districts remain hidden until Rentalink officially rolls out there."}
           </p>
         </div>
 

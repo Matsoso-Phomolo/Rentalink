@@ -494,7 +494,7 @@ Use only for empty development databases.
 ## Frontend
 
 ```text
-https://linelink-three.vercel.app
+https://rentalink.app
 ```
 
 ---
@@ -502,7 +502,7 @@ https://linelink-three.vercel.app
 ## Backend
 
 ```text
-https://linelink.onrender.com
+https://rentalink.onrender.com
 ```
 
 ---

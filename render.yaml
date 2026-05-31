@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: linelink-backend
+    name: rentalink-backend
     env: python
     rootDir: backend
     buildCommand: pip install -r requirements.txt
@@ -15,7 +15,7 @@ services:
       - key: ADMIN_PASSWORD
         sync: false
       - key: ADMIN_FULL_NAME
-        value: LineLink Admin
+        value: Rentalink Admin
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY

@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     application_token_expire_days: int = 7
 
     database_url: str = (
-        "postgresql+psycopg://linelink:linelink@localhost:5432/linelink"
+        "postgresql+psycopg://rentalink:rentalink@localhost:5432/rentalink"
     )
 
     secret_key: str = "change-me-in-production"
@@ -44,7 +44,7 @@ class Settings(BaseSettings):
             "http://127.0.0.1:3000,"
             "http://localhost:8001,"
             "http://127.0.0.1:8001,"
-            "https://linelink-three.vercel.app"
+            "https://rentalink.app"
         )
     )
 

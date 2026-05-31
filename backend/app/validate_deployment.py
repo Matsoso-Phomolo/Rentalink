@@ -97,26 +97,26 @@ def check_schema_conflicts(failures: list[str]) -> None:
             ok("Database schema has no existing tables")
             return
 
-        linelink_tables = set(Base.metadata.tables.keys())
-        allowed_tables = linelink_tables | {"alembic_version"}
-        non_linelink_tables = sorted(existing_tables - allowed_tables)
-        if non_linelink_tables:
+        rentalink_tables = set(Base.metadata.tables.keys())
+        allowed_tables = rentalink_tables | {"alembic_version"}
+        non_rentalink_tables = sorted(existing_tables - allowed_tables)
+        if non_rentalink_tables:
             fail(
-                "Database contains non-LineLink tables. Use a clean database or a separate schema: "
-                + ", ".join(non_linelink_tables),
+                "Database contains non-Rentalink tables. Use a clean database or a separate schema: "
+                + ", ".join(non_rentalink_tables),
                 failures,
             )
             return
 
-        if "alembic_version" not in existing_tables and existing_tables.intersection(linelink_tables):
+        if "alembic_version" not in existing_tables and existing_tables.intersection(rentalink_tables):
             fail(
-                "LineLink tables exist but alembic_version is missing. This looks like a partial/manual schema; "
+                "Rentalink tables exist but alembic_version is missing. This looks like a partial/manual schema; "
                 "use a clean database or reset only if the data is disposable.",
                 failures,
             )
             return
 
-        ok("Existing database tables look compatible with LineLink")
+        ok("Existing database tables look compatible with Rentalink")
     except Exception as exc:
         fail(f"Schema conflict check failed: {exc}", failures)
 
@@ -173,12 +173,12 @@ def check_health_url(health_url: str | None, failures: list[str]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Validate LineLink deployment readiness")
+    parser = argparse.ArgumentParser(description="Validate Rentalink deployment readiness")
     parser.add_argument("--health-url", help="Optional deployed or local health URL, for example https://api.example.com/health")
     args = parser.parse_args()
 
     failures: list[str] = []
-    print(f"LineLink deployment validation ({settings.app_env})")
+    print(f"Rentalink deployment validation ({settings.app_env})")
     check_required_env(failures)
     check_app_import(failures)
     check_database(failures)

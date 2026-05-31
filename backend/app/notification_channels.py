@@ -26,7 +26,7 @@ def send_email(to_email: str, subject: str, message: str) -> bool:
                 "subject": subject,
                 "html": f"""
                 <div style="font-family: Arial, sans-serif; padding: 20px;">
-                    <h2>LineLink Security</h2>
+                    <h2>Rentalink Security</h2>
                     <p>{message}</p>
                 </div>
                 """,
@@ -86,7 +86,7 @@ def send_password_reset(user: User, token: str, channel: str = "email") -> bool:
 
     return send_email(
         user.email,
-        "LineLink Password Reset",
+        "Rentalink Password Reset",
         message,
     )
 
@@ -94,16 +94,16 @@ def send_password_reset(user: User, token: str, channel: str = "email") -> bool:
 def send_login_credentials(user: User, temporary_password: str) -> None:
     
     message = (
-        f"Your LineLink username is {user.username}. "
+        f"Your Rentalink username is {user.username}. "
         f"Temporary password: {temporary_password}"
     )
 
     send_email(
         user.email,
-        "LineLink account created",
+        "Rentalink account created",
         message,
     )
-    send_email(user.email, "LineLink account created", message)
+    send_email(user.email, "Rentalink account created", message)
     if user.phone:
         send_sms(user.phone, message)
         send_whatsapp(user.phone, message)

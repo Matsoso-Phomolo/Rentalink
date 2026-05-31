@@ -26,7 +26,7 @@ def log_request_response(db: Session, application: TenantApplication, channel: P
     contact_value = response_contact_value(application)
 
     if channel == PreferredResponseMethod.email and application.email:
-        send_email(application.email, "LineLink room request", message)
+        send_email(application.email, "Rentalink room request", message)
     elif channel == PreferredResponseMethod.whatsapp and application.phone:
         send_whatsapp(application.phone, message)
     elif channel == PreferredResponseMethod.sms and application.phone:

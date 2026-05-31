@@ -152,9 +152,9 @@ def run_reminders(db: Session, today: date | None = None) -> dict[str, object]:
                 continue
             balance = max(Decimal("0"), Decimal(str(due.amount_due or 0)) - Decimal(str(due.amount_paid or 0)))
             if reminder_type == "rent_overdue":
-                message = f"Your LineLink rent payment for Room {room.room_number} at {property_item.name} is overdue. Outstanding balance: M{_money(balance)}. Please make payment as soon as possible."
+                message = f"Your Rentalink rent payment for Room {room.room_number} at {property_item.name} is overdue. Outstanding balance: M{_money(balance)}. Please make payment as soon as possible."
             else:
-                message = f"Reminder: Your LineLink rent payment for Room {room.room_number} at {property_item.name} is due on {due.due_date}. Outstanding amount: M{_money(balance)}."
+                message = f"Reminder: Your Rentalink rent payment for Room {room.room_number} at {property_item.name} is due on {due.due_date}. Outstanding amount: M{_money(balance)}."
             for channel in _channels_for(db, user, tenant.phone, tenant.email or user.email):
                 outcome = _create_reminder(
                     db,
@@ -188,9 +188,9 @@ def run_reminders(db: Session, today: date | None = None) -> dict[str, object]:
             if not landlord or not user or not plan:
                 continue
             if reminder_type == "subscription_overdue":
-                message = f"Your LineLink {plan.name} subscription expired on {subscription.renewal_date}. Please renew to continue accessing landlord operations."
+                message = f"Your Rentalink {plan.name} subscription expired on {subscription.renewal_date}. Please renew to continue accessing landlord operations."
             else:
-                message = f"Your LineLink {plan.name} subscription expires on {subscription.renewal_date}. Please renew to continue accessing landlord operations."
+                message = f"Your Rentalink {plan.name} subscription expires on {subscription.renewal_date}. Please renew to continue accessing landlord operations."
             for channel in _channels_for(db, user, landlord.contact_phone or user.phone, landlord.email or user.email):
                 outcome = _create_reminder(
                     db,

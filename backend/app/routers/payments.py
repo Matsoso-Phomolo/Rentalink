@@ -281,7 +281,7 @@ def complete_successful_subscription_transaction(
             Notification(
                 user_id=landlord.user_id,
                 title="Subscription payment successful",
-                body="Your LineLink landlord subscription payment was confirmed.",
+                body="Your Rentalink landlord subscription payment was confirmed.",
                 category="subscriptions",
             )
         )

@@ -13,7 +13,7 @@ export function ProtectedRoute({ roles }: { roles?: Role[] }) {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <main className="center-page">Loading LineLink...</main>;
+    return <main className="center-page">Loading Rentalink...</main>;
   }
 
   if (!user) {

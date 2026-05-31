@@ -4,7 +4,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.config import settings
+from app.application_rules import validate_application_against_listing
 from app.database import get_db
 from app.models import (
     ApplicationStatus,
@@ -221,6 +221,7 @@ def create_application(
     db: Session = Depends(get_db),
 ):
     listing = get_public_listing(db, listing_id)
+    validate_application_against_listing(listing, payload)
 
     application = TenantApplication(
         listing_id=listing.id,
@@ -397,6 +398,7 @@ def submit_public_application_form(
     application = get_application_by_token(db, token)
 
     listing = get_public_listing(db, application.listing_id)
+    validate_application_against_listing(listing, payload)
 
     for key, value in payload.model_dump().items():
         setattr(application, key, value)

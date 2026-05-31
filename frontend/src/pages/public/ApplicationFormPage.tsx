@@ -8,10 +8,10 @@ import type { TenantApplication } from "../../types";
 type FullApplicationForm = {
   full_name: string;
   gender: string;
-  phone: number;
+  phone: string;
   alternative_phone: string;
   email: string;
-  national_id: number;
+  national_id: string;
   passport_number: string;
   tenant_type: "student" | "non_student";
   student_number: string;
@@ -88,6 +88,14 @@ export function ApplicationFormPage() {
   async function submit(event: FormEvent) {
     event.preventDefault();
     if (!token) return;
+    if (form.tenant_type === "student" && (!form.institution.trim() || !form.student_number.trim())) {
+      setNotice("Student applications require institution and student number.");
+      return;
+    }
+    if (form.tenant_type === "non_student" && !form.occupation.trim()) {
+      setNotice("Non-student applications require occupation.");
+      return;
+    }
     setSubmitting(true);
     setNotice("");
     try {
@@ -127,7 +135,7 @@ export function ApplicationFormPage() {
           <div className="brand-mark">
             <span>LL</span>
             <div>
-              <strong>LineLink</strong>
+              <strong>Rentalink</strong>
               <small>Secure application</small>
             </div>
           </div>
@@ -168,10 +176,10 @@ export function ApplicationFormPage() {
                 <label>Preferred move-in<input type="date" value={form.preferred_move_in_date} onChange={(event) => update("preferred_move_in_date", event.target.value)} /></label>
               </div>
               <div className="form-grid">
-                <label>Student number<input value={form.student_number} onChange={(event) => update("student_number", event.target.value)} /></label>
-                <label>Institution<input value={form.institution} onChange={(event) => update("institution", event.target.value)} /></label>
+                <label>Student number<input required={form.tenant_type === "student"} value={form.student_number} onChange={(event) => update("student_number", event.target.value)} /></label>
+                <label>Institution<input required={form.tenant_type === "student"} value={form.institution} onChange={(event) => update("institution", event.target.value)} /></label>
               </div>
-              <label>Occupation<input value={form.occupation} onChange={(event) => update("occupation", event.target.value)} /></label>
+              <label>Occupation<input required={form.tenant_type === "non_student"} value={form.occupation} onChange={(event) => update("occupation", event.target.value)} /></label>
               <div className="form-grid">
                 <label>Emergency contact name<input required value={form.emergency_contact_name} onChange={(event) => update("emergency_contact_name", event.target.value)} /></label>
                 <label>Emergency contact phone<input required value={form.emergency_contact_phone} onChange={(event) => update("emergency_contact_phone", event.target.value)} /></label>

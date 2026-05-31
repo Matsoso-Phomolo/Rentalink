@@ -114,7 +114,7 @@ def create_tenant_account(
     email = (
         str(payload.email)
         if payload.email
-        else f"{next_identifier(db, UserRole.tenant).lower()}@tenant.linelink.local"
+        else f"{next_identifier(db, UserRole.tenant).lower()}@tenant.Rentalink.local"
     )
 
     if db.query(User).filter(User.email == email).first():

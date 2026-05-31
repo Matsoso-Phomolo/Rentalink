@@ -357,7 +357,7 @@ def pay_subscription(
             float(payload.amount),
             payload.payer_phone,
             idempotency_key,
-            description="LineLink landlord subscription",
+            description="Rentalink landlord subscription",
             method_variant=payload.method.value,
         )
     )
