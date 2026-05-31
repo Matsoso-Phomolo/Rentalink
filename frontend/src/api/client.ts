@@ -1,6 +1,8 @@
 import { tokenStorage } from "../auth/tokenStorage";
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://127.0.0.1:8001";
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim();
+
+export const API_BASE_URL = configuredApiBase || "http://127.0.0.1:8001";
 
 async function responseError(response: Response) {
   const text = await response.text();
@@ -31,7 +33,19 @@ export async function apiFetch(path: string, options: RequestInit = {}) {
     throw await responseError(response);
   }
 
-  return response.json();
+  const text = await response.text();
+
+  if (!text.trim()) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      "The API returned a non-JSON response. Please check the backend URL configuration."
+    );
+  }
 }
 
 export type LoginResponse = {
