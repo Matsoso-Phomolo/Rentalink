@@ -4,7 +4,7 @@ import uuid
 from datetime import date, datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 from sqlalchemy.orm import Session
 
 from app.auth import get_password_hash
@@ -116,6 +116,71 @@ def safe_email(value: object, request_id: object) -> str:
         return email
 
     return f"landlord-request-{request_id}@rentalink.local"
+
+
+def table_columns(db: Session, table_name: str) -> set[str]:
+    try:
+        return {item["name"] for item in inspect(db.get_bind()).get_columns(table_name)}
+    except Exception:
+        logger.exception("Failed to inspect table columns", extra={"table_name": table_name})
+        return set()
+
+
+def enum_insert_expr(column: str, enum_name: str, db: Session) -> str:
+    if db.get_bind().dialect.name == "postgresql":
+        return f"CAST(:{column} AS {enum_name})"
+    return f":{column}"
+
+
+def landlord_request_select_sql(columns: set[str]) -> str:
+    optional_columns = {
+        "business_name": "business_name",
+        "emergency_contact": "emergency_contact",
+        "preferred_response_method": "preferred_response_method::text as preferred_response_method",
+        "response_contact_value": "response_contact_value",
+        "admin_note": "admin_note",
+        "landlord_id": "landlord_id",
+        "approved_by_user_id": "approved_by_user_id",
+        "approved_at": "approved_at",
+        "created_at": "created_at",
+    }
+    fallback_columns = {
+        "business_name": "full_name as business_name",
+        "emergency_contact": "NULL as emergency_contact",
+        "preferred_response_method": "'email' as preferred_response_method",
+        "response_contact_value": "email as response_contact_value",
+        "admin_note": "NULL as admin_note",
+        "landlord_id": "NULL as landlord_id",
+        "approved_by_user_id": "NULL as approved_by_user_id",
+        "approved_at": "NULL as approved_at",
+        "created_at": "CURRENT_TIMESTAMP as created_at",
+    }
+    select_parts = [
+        "id",
+        optional_columns["business_name"] if "business_name" in columns else fallback_columns["business_name"],
+        "full_name",
+        "email",
+        "phone" if "phone" in columns else "NULL as phone",
+        "address" if "address" in columns else "NULL as address",
+        optional_columns["emergency_contact"] if "emergency_contact" in columns else fallback_columns["emergency_contact"],
+        "message" if "message" in columns else "NULL as message",
+        optional_columns["preferred_response_method"] if "preferred_response_method" in columns else fallback_columns["preferred_response_method"],
+        optional_columns["response_contact_value"] if "response_contact_value" in columns else fallback_columns["response_contact_value"],
+        "status::text as status" if "status" in columns else "'pending' as status",
+        optional_columns["admin_note"] if "admin_note" in columns else fallback_columns["admin_note"],
+        optional_columns["landlord_id"] if "landlord_id" in columns else fallback_columns["landlord_id"],
+        optional_columns["approved_by_user_id"] if "approved_by_user_id" in columns else fallback_columns["approved_by_user_id"],
+        optional_columns["approved_at"] if "approved_at" in columns else fallback_columns["approved_at"],
+        optional_columns["created_at"] if "created_at" in columns else fallback_columns["created_at"],
+    ]
+
+    order_by = "created_at desc" if "created_at" in columns else "id desc"
+    return f"""
+        select
+            {", ".join(select_parts)}
+        from landlord_requests
+        order by {order_by}
+    """
 
 
 def serialize_landlord_request_property(row: dict[str, object]) -> dict[str, object] | None:
@@ -364,31 +429,135 @@ def create_landlord_request(
     payload: LandlordRequestCreate,
     db: Session = Depends(get_db),
 ):
-    existing = (
-        db.query(LandlordRequest)
-        .filter(
-            LandlordRequest.email == payload.email,
-            LandlordRequest.status == LandlordRequestStatus.pending,
+    columns = table_columns(db, "landlord_requests")
+
+    if not columns:
+        logger.error("Cannot create landlord request because table is missing")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Landlord request intake is temporarily unavailable.",
         )
-        .first()
-    )
+
+    existing_sql = """
+        select id
+        from landlord_requests
+        where email = :email and status::text = 'pending'
+        limit 1
+    """
+    existing = db.execute(
+        text(existing_sql),
+        {"email": str(payload.email)},
+    ).mappings().first()
 
     if existing:
-        return existing
+        request_rows = [
+            dict(row)
+            for row in db.execute(
+                text(
+                    landlord_request_select_sql(columns).replace(
+                        "order by created_at desc",
+                        "where id = :request_id order by created_at desc",
+                    ).replace(
+                        "order by id desc",
+                        "where id = :request_id order by id desc",
+                    )
+                ),
+                {"request_id": existing["id"]},
+            ).mappings().all()
+        ]
+        if request_rows:
+            serialized = serialize_landlord_request_row(request_rows[0], {})
+            if serialized:
+                return serialized
 
-    values = payload.model_dump()
-    values["business_name"] = values.get("business_name") or payload.full_name
+    request_id = uuid.uuid4()
+    now = datetime.now(timezone.utc)
+    values = {
+        "id": request_id,
+        "business_name": payload.business_name or payload.full_name,
+        "full_name": payload.full_name,
+        "email": str(payload.email),
+        "phone": payload.phone,
+        "address": payload.address,
+        "preferred_response_method": payload.preferred_response_method.value,
+        "response_contact_value": payload.response_contact_value,
+        "emergency_contact": payload.emergency_contact,
+        "message": payload.message,
+        "status": LandlordRequestStatus.pending.value,
+        "created_at": now,
+        "updated_at": now,
+    }
 
-    request = LandlordRequest(
-        **values,
-        status=LandlordRequestStatus.pending,
-    )
+    insert_columns: list[str] = []
+    insert_values: list[str] = []
+    params: dict[str, object] = {}
 
-    db.add(request)
-    db.commit()
-    db.refresh(request)
+    for column, value in values.items():
+        if column not in columns:
+            continue
 
-    return request
+        insert_columns.append(column)
+        params[column] = value
+
+        if column == "status":
+            insert_values.append(
+                enum_insert_expr("status", "landlord_request_status", db)
+            )
+        elif column == "preferred_response_method":
+            insert_values.append(
+                enum_insert_expr(
+                    "preferred_response_method",
+                    "preferred_response_method",
+                    db,
+                )
+            )
+        else:
+            insert_values.append(f":{column}")
+
+    try:
+        db.execute(
+            text(
+                f"""
+                insert into landlord_requests ({", ".join(insert_columns)})
+                values ({", ".join(insert_values)})
+                """
+            ),
+            params,
+        )
+        db.commit()
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Failed to create landlord request",
+            extra={
+                "email": str(payload.email),
+                "columns": sorted(columns),
+            },
+        )
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not submit landlord request. Please try again.",
+        ) from None
+
+    return {
+        "id": request_id,
+        "business_name": payload.business_name or payload.full_name,
+        "full_name": payload.full_name,
+        "email": str(payload.email),
+        "phone": payload.phone,
+        "address": payload.address,
+        "preferred_response_method": payload.preferred_response_method.value,
+        "response_contact_value": payload.response_contact_value,
+        "emergency_contact": payload.emergency_contact,
+        "message": payload.message,
+        "status": LandlordRequestStatus.pending.value,
+        "admin_note": None,
+        "landlord_id": None,
+        "approved_by_user_id": None,
+        "approved_at": None,
+        "created_at": now,
+        "properties": [],
+    }
 
 
 @router.get(
@@ -399,33 +568,16 @@ def list_landlord_requests(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.national_admin)),
 ):
+    columns = table_columns(db, "landlord_requests")
+
+    if not columns:
+        return []
+
     try:
         request_rows = [
             dict(row)
             for row in db.execute(
-                text(
-                    """
-                    select
-                        id,
-                        business_name,
-                        full_name,
-                        email,
-                        phone,
-                        address,
-                        emergency_contact,
-                        message,
-                        preferred_response_method::text as preferred_response_method,
-                        response_contact_value,
-                        status::text as status,
-                        admin_note,
-                        landlord_id,
-                        approved_by_user_id,
-                        approved_at,
-                        created_at
-                    from landlord_requests
-                    order by created_at desc
-                    """
-                )
+                text(landlord_request_select_sql(columns))
             )
             .mappings()
             .all()
