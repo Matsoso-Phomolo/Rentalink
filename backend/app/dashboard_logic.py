@@ -10,6 +10,7 @@ from app.models import (
     Room,
     RoomStatus,
 )
+from app.room_status import is_occupied_room_status, is_vacant_room_status
 
 
 def money(value) -> Decimal:
@@ -125,8 +126,8 @@ def calculate_room_status_summary(
     )
 
     return {
-        "vacant": sum(1 for room in rooms if room.status == RoomStatus.vacant),
-        "occupied": sum(1 for room in rooms if room.status == RoomStatus.occupied),
+        "vacant": sum(1 for room in rooms if is_vacant_room_status(room.status)),
+        "occupied": sum(1 for room in rooms if is_occupied_room_status(room.status)),
         "partially_occupied": sum(
             1 for room in rooms if room.status == RoomStatus.partially_occupied
         ),

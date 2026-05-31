@@ -30,6 +30,7 @@ class UserRole(str, enum.Enum):
 
 
 class RoomStatus(str, enum.Enum):
+    available = "available"
     vacant = "vacant"
     occupied = "occupied"
     partially_occupied = "partially_occupied"

@@ -36,6 +36,7 @@ from app.models import (
 from app.notification_channels import send_login_credentials
 from app.ownership import get_property_in_scope, get_room_in_scope, scoped_query
 from app.rent_logic import generate_initial_rent_due
+from app.room_status import is_vacant_room_status
 from app.schemas import (
     ApplicationAssignRoom,
     ApplicationDecision,
@@ -308,7 +309,7 @@ def verify_listing(
 
     room = db.get(Room, listing.room_id)
 
-    if room and room.status == RoomStatus.vacant:
+    if room and is_vacant_room_status(room.status):
         listing.status = ListingStatus.published
         listing.is_public = True
 
@@ -524,7 +525,7 @@ def assign_application_room(
         )
 
     if (
-        room.status != RoomStatus.vacant
+        not is_vacant_room_status(room.status)
         or listing.status != ListingStatus.published
         or not listing.is_public
     ):

@@ -21,6 +21,7 @@ from app.models import (
     TenantType,
     ViewingRequest,
 )
+from app.room_status import VACANT_ROOM_STATUSES
 from app.schemas import (
     ListingRead,
     PublicApplicationSubmit,
@@ -48,7 +49,7 @@ def get_public_listing(db: Session, listing_id: uuid.UUID) -> RoomListing:
             RoomListing.status == ListingStatus.published,
             RoomListing.is_public.is_(True),
             RoomListing.verification_status == ListingVerificationStatus.verified,
-            Room.status == RoomStatus.vacant,
+            Room.status.in_(VACANT_ROOM_STATUSES),
         )
         .first()
     )
@@ -84,7 +85,7 @@ def public_listings(
         .filter(
             RoomListing.status == ListingStatus.published,
             RoomListing.is_public.is_(True),
-            Room.status == RoomStatus.vacant,
+            Room.status.in_(VACANT_ROOM_STATUSES),
         )
     )
 

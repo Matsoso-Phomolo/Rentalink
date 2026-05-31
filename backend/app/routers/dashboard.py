@@ -39,6 +39,7 @@ from app.models import (
     UserRole,
 )
 from app.ownership import scoped_query
+from app.room_status import VACANT_ROOM_STATUSES
 from app.schemas import DashboardSummary
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
@@ -141,7 +142,7 @@ def dashboard_summary(
     return DashboardSummary(
         properties=props.count(),
         rooms=rooms.count(),
-        vacant_rooms=rooms.filter(Room.status == RoomStatus.vacant).count(),
+        vacant_rooms=rooms.filter(Room.status.in_(VACANT_ROOM_STATUSES)).count(),
         occupied_rooms=rooms.filter(
             Room.status.in_(
                 [
