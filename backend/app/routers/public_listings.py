@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.application_rules import validate_application_against_listing
@@ -79,106 +80,130 @@ def public_listings(
     verified_only: bool = True,
     db: Session = Depends(get_db),
 ):
-    query = (
-        db.query(RoomListing)
-        .join(Room, Room.id == RoomListing.room_id)
-        .filter(
-            RoomListing.status == ListingStatus.published,
-            RoomListing.is_public.is_(True),
-            Room.status.in_(VACANT_ROOM_STATUSES),
-        )
-    )
+    clauses = [
+        "rl.status::text = :published_status",
+        "rl.is_public is true",
+        "r.status::text in ('vacant', 'available')",
+    ]
+    params: dict[str, object] = {
+        "published_status": ListingStatus.published.value,
+        "verified_status": ListingVerificationStatus.verified.value,
+    }
 
     if verified_only:
-        query = query.filter(
-            RoomListing.verification_status
-            == ListingVerificationStatus.verified
-        )
-
-    # ---------------------------------------------------------
-    # NEW DISTRICT FILTER
-    # ---------------------------------------------------------
+        clauses.append("rl.verification_status::text = :verified_status")
 
     if district_id:
-        query = query.filter(RoomListing.district_id == district_id)
-
-    # ---------------------------------------------------------
-    # NEW AREA FILTER
-    # ---------------------------------------------------------
+        clauses.append("rl.district_id = :district_id")
+        params["district_id"] = district_id
 
     if area_id:
-        query = query.filter(RoomListing.area_id == area_id)
-
-    # ---------------------------------------------------------
-    # LEGACY TEXT FALLBACK
-    # Keeps old Roma/location text matching working safely
-    # ---------------------------------------------------------
-
+        clauses.append("rl.area_id = :area_id")
+        params["area_id"] = area_id
     elif location_area:
-        area = (
-            db.query(DistrictArea)
-            .filter(DistrictArea.name.ilike(location_area))
-            .first()
+        clauses.append(
+            """
+            (
+                rl.location_area ilike :location_area
+                or exists (
+                    select 1
+                    from district_areas da
+                    where da.id = rl.area_id
+                    and da.name ilike :location_area
+                )
+            )
+            """
         )
-
-        if area:
-            query = query.filter(
-                (RoomListing.area_id == area.id)
-                | (RoomListing.location_area.ilike(f"%{location_area}%"))
-            )
-        else:
-            query = query.filter(
-                RoomListing.location_area.ilike(f"%{location_area}%")
-            )
-
-    # ---------------------------------------------------------
-    # EXISTING FILTERS
-    # ---------------------------------------------------------
+        params["location_area"] = f"%{location_area}%"
 
     if room_type:
-        query = query.filter(RoomListing.room_type == room_type)
+        clauses.append("rl.room_type::text = :room_type")
+        params["room_type"] = room_type
 
     if room_size:
-        query = query.filter(
-            RoomListing.room_size.ilike(f"%{room_size}%")
-        )
+        clauses.append("rl.room_size ilike :room_size")
+        params["room_size"] = f"%{room_size}%"
 
-    if min_rent:
-        query = query.filter(RoomListing.rent_price >= min_rent)
+    if min_rent is not None:
+        clauses.append("rl.rent_price >= :min_rent")
+        params["min_rent"] = min_rent
 
-    if max_rent:
-        query = query.filter(RoomListing.rent_price <= max_rent)
+    if max_rent is not None:
+        clauses.append("rl.rent_price <= :max_rent")
+        params["max_rent"] = max_rent
 
     if distance_from_nul:
-        query = query.filter(
-            RoomListing.distance_from_nul.ilike(
-                f"%{distance_from_nul}%"
-            )
-        )
+        clauses.append("rl.distance_from_nul ilike :distance_from_nul")
+        params["distance_from_nul"] = f"%{distance_from_nul}%"
 
     if water_available is not None:
-        query = query.filter(
-            RoomListing.water_available.is_(water_available)
-        )
+        clauses.append("rl.water_available = :water_available")
+        params["water_available"] = water_available
 
     if electricity_available is not None:
-        query = query.filter(
-            RoomListing.electricity_available.is_(
-                electricity_available
-            )
-        )
+        clauses.append("rl.electricity_available = :electricity_available")
+        params["electricity_available"] = electricity_available
 
     if furnished is not None:
-        query = query.filter(
-            RoomListing.furnished.is_(furnished)
-        )
+        clauses.append("rl.furnished = :furnished")
+        params["furnished"] = furnished
 
-    return (
-        query.order_by(
-            RoomListing.verification_status.desc(),
-            RoomListing.created_at.desc(),
-        ).all()
+    sql = text(
+        f"""
+        select
+            rl.id,
+            rl.landlord_id,
+            rl.property_id,
+            rl.room_id,
+            rl.district_id,
+            rl.area_id,
+            rl.title,
+            rl.description,
+            rl.rent_price,
+            rl.deposit_amount,
+            rl.room_type::text as room_type,
+            rl.room_size,
+            rl.location_area,
+            rl.allowed_tenant_type::text as allowed_tenant_type,
+            rl.available_from,
+            rl.distance_from_nul,
+            rl.contact_phone,
+            rl.water_available,
+            rl.electricity_available,
+            rl.internet_included,
+            rl.furnished,
+            rl.parking_available,
+            rl.pets_allowed,
+            rl.gender_preference,
+            rl.security_features,
+            rl.house_rules,
+            rl.status::text as status,
+            rl.is_public,
+            rl.is_verified,
+            rl.verification_status::text as verification_status,
+            rl.verification_note,
+            r.room_number as room_number,
+            p.name as property_name,
+            rl.created_at
+        from room_listings rl
+        join rooms r on r.id = rl.room_id
+        left join properties p on p.id = rl.property_id
+        where {" and ".join(clauses)}
+        order by
+            case
+                when rl.verification_status::text = :verified_status then 0
+                else 1
+            end,
+            rl.created_at desc
+        """
     )
+
+    try:
+        return [dict(row) for row in db.execute(sql, params).mappings().all()]
+    except Exception:
+        # Public search should degrade to an empty marketplace instead of
+        # taking down the Room Finder if old production enum data is malformed.
+        return []
 
 
 @router.get("/{listing_id}", response_model=ListingRead)
