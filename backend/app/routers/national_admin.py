@@ -1,4 +1,5 @@
 import uuid
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
@@ -13,6 +14,29 @@ from app.models import District, DistrictAdminAssignment, User, UserRole
 from app.reminders import run_reminders
 
 router = APIRouter(prefix="/admin", tags=["national admin"])
+logger = logging.getLogger(__name__)
+
+
+def empty_ai_risk_center(reason: str | None = None) -> dict[str, object]:
+    return {
+        "decision_support_only": True,
+        "landlord_risk_cards": [],
+        "listing_fraud_cards": [],
+        "complaint_severity_cards": [],
+        "suspicious_payment_alerts": [],
+        "daily_admin_summary": {
+            "new_landlord_requests": 0,
+            "pending_listing_verification": 0,
+            "overdue_subscriptions": 0,
+            "unresolved_complaints": 0,
+            "open_maintenance_tickets": 0,
+            "recent_failed_payments": 0,
+            "reminders_scaffolded": 0,
+            "rejected_payment_proofs": 0,
+        },
+        "status": "degraded" if reason else "ok",
+        "message": reason,
+    }
 
 
 class DistrictAdminCreate(BaseModel):
@@ -51,7 +75,13 @@ def ai_risk_center(
     db: Session = Depends(get_db),
     _: User = Depends(require_roles(UserRole.national_admin)),
 ):
-    return build_ai_risk_center(db)
+    try:
+        return build_ai_risk_center(db)
+    except Exception:
+        logger.exception("AI Risk Center degraded because risk aggregation failed")
+        return empty_ai_risk_center(
+            "Risk Center is temporarily showing a safe empty state while legacy production data is normalized."
+        )
 
 
 @router.post("/district-admins", response_model=DistrictAdminRead)
