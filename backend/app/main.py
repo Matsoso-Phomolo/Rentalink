@@ -32,6 +32,7 @@ from app.routers import (
     portfolio_risk,
     properties,
     public_listings,
+    push_subscriptions,
     reminders,
     rent_dues,
     risk,
@@ -103,6 +104,7 @@ app.include_router(tenant_portal.router)
 app.include_router(support.router)
 app.include_router(uploads.router)
 app.include_router(notifications.router)
+app.include_router(push_subscriptions.router)
 app.include_router(audit_logs.router)
 app.include_router(applications.router)
 app.include_router(line_rules.router)
