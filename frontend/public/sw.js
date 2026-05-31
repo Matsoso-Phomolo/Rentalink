@@ -1,8 +1,9 @@
-const CACHE_NAME = "rentalink-pwa-v1";
+const CACHE_NAME = "rentalink-pwa-v2";
 
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
+  "/offline.html",
   "/icons/icon-192.png",
   "/icons/icon-512.png",
 ];
@@ -41,7 +42,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request).catch(() => {
       return caches.match(request).then((response) => {
-        return response || caches.match("/");
+        return response || caches.match("/offline.html");
       });
     })
   );
