@@ -934,6 +934,37 @@ class NotificationPreference(Base, TimestampMixin):
     sms_enabled: Mapped[bool] = mapped_column(Boolean, default=True)
 
 
+class PushSubscription(Base, TimestampMixin):
+    __tablename__ = "push_subscriptions"
+
+    id: Mapped[uuid.UUID] = uuid_pk()
+
+    user_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("users.id"),
+        index=True,
+    )
+
+    endpoint: Mapped[str] = mapped_column(
+        Text,
+        unique=True,
+        index=True,
+    )
+
+    p256dh: Mapped[str] = mapped_column(Text)
+
+    auth: Mapped[str] = mapped_column(Text)
+
+    user_agent: Mapped[str | None] = mapped_column(Text)
+
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        index=True,
+    )
+
+    user: Mapped["User"] = relationship()
+
+
 class ReminderLog(Base, TimestampMixin):
     __tablename__ = "reminder_logs"
 
