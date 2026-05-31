@@ -187,7 +187,7 @@ export function LandlordVerificationPage() {
       <section className="auth-shell public-request-shell">
         <div className="auth-copy">
           <div className="brand-mark light">
-            <span>LL</span>
+            <span>RL</span>
             <div>
               <strong>RentaLink</strong>
               <small>Verification</small>

@@ -54,7 +54,8 @@ const districtAdminLinks = [
   { to: "/landlord/requests", label: "Room Requests" },
   { to: "/landlord/payments", label: "Payments" },
   { to: "/landlord/support", label: "Support" },
-  { to: "/rooms", label: "Room Finder" },
+  { to: "/district/room-finder", label: "Room Finder" },
+  { to: "/district/landlord-request-form", label: "Landlord Request Form" },
   { to: "/security", label: "Security" },
 ];
 
@@ -71,7 +72,8 @@ const nationalAdminLinks = [
   { to: "/admin/districts", label: "Districts" },
   { to: "/admin/district-admins", label: "District Admins" },
   { to: "/admin/landlords", label: "Landlords" },
-  { to: "/rooms", label: "Room Finder" },
+  { to: "/admin/room-finder", label: "Room Finder" },
+  { to: "/admin/landlord-request-form", label: "Landlord Request Form" },
   { to: "/security", label: "Security" },
 ];
 
@@ -117,7 +119,8 @@ export function AppLayout() {
                 link.to === "/tenant" ||
                 link.to === "/admin" ||
                 link.to === "/district" ||
-                link.to === "/rooms" ||
+                link.to === "/admin/room-finder" ||
+                link.to === "/district/room-finder" ||
                 link.to === "/security"
               }
             >

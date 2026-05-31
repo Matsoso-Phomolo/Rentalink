@@ -32,7 +32,7 @@ export function ForgotPasswordPage() {
     <main className="login-page">
       <section className="login-panel compact-auth">
         <div className="login-copy">
-          <div className="brand-mark light landing-brand"><span>LL</span><div><strong>Rentalink</strong><small>Password recovery</small></div></div>
+          <div className="brand-mark light landing-brand"><span>RL</span><div><strong>Rentalink</strong><small>Password recovery</small></div></div>
           <div className="hero-copy">
             <p className="eyebrow">Recovery</p>
             <h1>Reset your Rentalink access safely.</h1>

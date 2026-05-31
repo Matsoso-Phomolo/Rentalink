@@ -194,6 +194,14 @@ export function AppRoutes() {
               <Route path="/admin/landlords" element={<AdminDashboardPage section="landlords" />} />
               <Route path="/admin/landlord-requests" element={<LandlordRequestsPage />} />
               <Route path="/admin/landlord-verifications" element={<LandlordVerificationReviewPage />} />
+              <Route
+                path="/admin/room-finder"
+                element={<PublicRoomFinderPage returnTo="/admin" returnLabel="Return to National Admin Dashboard" />}
+              />
+              <Route
+                path="/admin/landlord-request-form"
+                element={<LandlordRequestPage returnTo="/admin" returnLabel="Return to National Admin Dashboard" />}
+              />
             </Route>
 
             <Route element={<ProtectedRoute roles={["district_admin"]} />}>
@@ -201,6 +209,14 @@ export function AppRoutes() {
               <Route path="/district/landlords" element={<AdminDashboardPage section="landlords" />} />
               <Route path="/district/requests" element={<AdminDashboardPage section="requests" />} />
               <Route path="/district/risk" element={<AdminDashboardPage section="risk" />} />
+              <Route
+                path="/district/room-finder"
+                element={<PublicRoomFinderPage returnTo="/district" returnLabel="Return to District Dashboard" />}
+              />
+              <Route
+                path="/district/landlord-request-form"
+                element={<LandlordRequestPage returnTo="/district" returnLabel="Return to District Dashboard" />}
+              />
             </Route>
 
             <Route

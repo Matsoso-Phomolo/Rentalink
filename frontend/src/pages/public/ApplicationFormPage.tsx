@@ -133,7 +133,7 @@ export function ApplicationFormPage() {
       <div className="auth-shell">
         <div className="auth-copy">
           <div className="brand-mark">
-            <span>LL</span>
+            <span>RL</span>
             <div>
               <strong>Rentalink</strong>
               <small>Secure application</small>

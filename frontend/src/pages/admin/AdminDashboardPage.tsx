@@ -113,6 +113,15 @@ function nullable(value: string) {
   return value.trim() ? value.trim() : null;
 }
 
+async function loadOptional<T>(path: string, fallback: T): Promise<T> {
+  try {
+    return (await apiFetch(path)) as T;
+  } catch (err) {
+    console.warn(`Admin optional data failed for ${path}`, err);
+    return fallback;
+  }
+}
+
 export function AdminDashboardPage({ section = "onboarding" }: { section?: AdminSection }) {
   const [landlords, setLandlords] = useState<Landlord[]>([]);
   const [requests, setRequests] = useState<LandlordRequest[]>([]);
@@ -143,11 +152,11 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
 
     try {
       const [landlordItems, requestItems, districtItems, areaItems, districtAdminItems] = await Promise.all([
-        apiFetch("/landlords") as Promise<Landlord[]>,
-        apiFetch("/landlords/requests") as Promise<LandlordRequest[]>,
-        apiFetch("/districts") as Promise<District[]>,
-        apiFetch("/district-areas") as Promise<DistrictArea[]>,
-        apiFetch("/admin/district-admins") as Promise<DistrictAdmin[]>
+        loadOptional<Landlord[]>("/landlords", []),
+        loadOptional<LandlordRequest[]>("/landlords/requests", []),
+        loadOptional<District[]>("/districts", []),
+        loadOptional<DistrictArea[]>("/district-areas", []),
+        loadOptional<DistrictAdmin[]>("/admin/district-admins", [])
       ]);
 
       setLandlords(landlordItems);
@@ -165,17 +174,17 @@ export function AdminDashboardPage({ section = "onboarding" }: { section?: Admin
       }
 
       const [listingItems, planItems] = await Promise.all([
-        apiFetch("/listings/mine") as Promise<Listing[]>,
-        apiFetch("/subscriptions/plans") as Promise<SubscriptionPlan[]>
+        loadOptional<Listing[]>("/listings/mine", []),
+        loadOptional<SubscriptionPlan[]>("/subscriptions/plans", [])
       ]);
 
       setListings(listingItems);
       setPlans(planItems);
 
       const [riskItems, reminderItems, healthItems] = await Promise.all([
-        apiFetch("/admin/ai-risk-center"),
-        apiFetch("/reminders/mine") as Promise<any[]>,
-        apiFetch("/payments/gateway-health")
+        loadOptional<any>("/admin/ai-risk-center", null),
+        loadOptional<any[]>("/reminders/mine", []),
+        loadOptional<any>("/payments/gateway-health", null)
       ]);
 
       setRiskCenter(riskItems);

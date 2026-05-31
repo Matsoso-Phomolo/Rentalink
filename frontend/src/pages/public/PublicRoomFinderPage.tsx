@@ -5,6 +5,11 @@ import { ErrorState, LoadingState } from "../../components/DataState";
 import { StatusPill } from "../../components/StatusPill";
 import type { Listing } from "../../types";
 
+type PublicRoomFinderPageProps = {
+  returnTo?: string;
+  returnLabel?: string;
+};
+
 type ApplicationForm = {
   full_name: string;
   phone: string;
@@ -70,7 +75,10 @@ function toNullable(value: string) {
   return value.trim() ? value.trim() : null;
 }
 
-export function PublicRoomFinderPage() {
+export function PublicRoomFinderPage({
+  returnTo = "/login",
+  returnLabel = "Leave"
+}: PublicRoomFinderPageProps = {}) {
   const { user, logout } = useAuth();
 
   const [listings, setListings] = useState<Listing[]>([]);
@@ -257,7 +265,7 @@ export function PublicRoomFinderPage() {
     <section className="page-stack">
       <div className="public-topbar">
         <div className="brand-mark light">
-          <span>LL</span>
+          <span>RL</span>
           <div>
             <strong>Rentalink</strong>
             <small>Room finder</small>
@@ -265,13 +273,14 @@ export function PublicRoomFinderPage() {
         </div>
 
         <div className="public-actions">
-          {user?.role === "admin" ? (
-            <a href="#/admin">Return to Admin Dashboard</a>
-          ) : (
-            <a href="#/login" onClick={() => { if (user) logout(); }}>
-              Leave
-            </a>
-          )}
+          <a
+            href={`#${returnTo}`}
+            onClick={() => {
+              if (returnTo === "/login" && user) logout();
+            }}
+          >
+            {returnLabel}
+          </a>
         </div>
       </div>
 

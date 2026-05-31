@@ -1,4 +1,5 @@
 import { FormEvent, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { apiFetch } from "../../api/client";
 
 type PreferredResponseMethod =
@@ -19,6 +20,11 @@ type LandlordRequestForm = {
   message: string;
 };
 
+type LandlordRequestPageProps = {
+  returnTo?: string;
+  returnLabel?: string;
+};
+
 const initialForm: LandlordRequestForm = {
   business_name: "",
   full_name: "",
@@ -31,7 +37,11 @@ const initialForm: LandlordRequestForm = {
   message: "",
 };
 
-export function LandlordRequestPage() {
+export function LandlordRequestPage({
+  returnTo,
+  returnLabel = "Return to dashboard"
+}: LandlordRequestPageProps = {}) {
+  const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState("");
   const [error, setError] = useState("");
@@ -81,7 +91,7 @@ export function LandlordRequestPage() {
       <section className="auth-shell public-request-shell">
         <div className="auth-copy">
           <div className="brand-mark light">
-            <span>LL</span>
+            <span>RL</span>
 
             <div>
               <strong>RentaLink</strong>
@@ -122,12 +132,22 @@ export function LandlordRequestPage() {
             • Property details
           </div>
 
-          <a
-            className="secondary-button"
-            href="#/login"
-          >
-            Back to sign in
-          </a>
+          {returnTo ? (
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={() => navigate(returnTo)}
+            >
+              {returnLabel}
+            </button>
+          ) : (
+            <a
+              className="secondary-button"
+              href="#/login"
+            >
+              Back to sign in
+            </a>
+          )}
         </div>
 
         <form
